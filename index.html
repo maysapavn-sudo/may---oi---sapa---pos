@@ -1,5 +1,6 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MÂY POS</title><link rel="stylesheet" href="style.css"></head>
-<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <body>
 <div id="login" class="overlay"><div class="dialog"><h1>MÂY POS</h1><p>Mây ơi Sapa</p><select id="loginRole"><option value="owner">OWNER</option><option value="manager">QUẢN LÝ</option><option value="cashier">THU NGÂN</option><option value="waiter">PHỤC VỤ</option><option value="kitchen">BẾP</option><option value="bar">BAR</option><option value="stock">KHO/KẾ TOÁN</option></select><input id="loginPin" type="password" inputmode="numeric" placeholder="PIN"><button id="loginBtn" class="primary">ĐĂNG NHẬP</button><small>PIN test: 1234</small></div></div>
 <header><div><b>MÂY POS</b><small>Mây ơi Sapa</small></div><div id="userName"></div></header>
 <nav id="nav"></nav>
