@@ -1,0 +1,21 @@
+{
+  "target_database": "PostgreSQL",
+  "tables": [
+    "users",
+    "roles",
+    "tables",
+    "menu_items",
+    "orders",
+    "order_items",
+    "kitchen_tickets",
+    "payments",
+    "shifts",
+    "ingredients",
+    "stock_moves",
+    "recipes",
+    "recipe_items",
+    "audit_logs",
+    "settings"
+  ],
+  "note": "Schema production đề xuất. Bản pilot hiện tại dùng localStorage; không giả định đây là database production."
+}
