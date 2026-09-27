@@ -67,8 +67,71 @@ function renderAudit(){$('auditLog').innerHTML=S.audit.slice(0,300).map(x=>'<div
 function exportData(){let blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='MAY_POS_BACKUP_'+today()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function restoreData(){let f=$('importData').files[0];if(!f)return alert('Chọn file JSON.');let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.menu||!x.orders)throw Error();S=x;save();alert('Khôi phục thành công.');location.reload()}catch(e){alert('File không hợp lệ.')}};r.readAsText(f)}
 function resetDemo(){if(confirm('Xóa toàn bộ dữ liệu demo?')){S=defaultState();save();location.reload()}}
-function login(){if($('loginPin').value!=='1234')return alert('PIN test là 1234');S.user=$('loginRole').value;log('ĐĂNG NHẬP',roles[S.user].name);$('login').classList.add('hide');nav();let first=roles[S.user].pages[0];show(first,$('nav').querySelector('button'));render()}
-function logout(){log('ĐĂNG XUẤT',roles[S.user].name);S.user=null;save();location.reload()}
-$('loginBtn').onclick=login;$('loginPin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('searchMenu').oninput=e=>{search=e.target.value.trim().toLowerCase();renderSale()};$('send').onclick=sendOrder;$('discount').onclick=doDiscount;$('voidItem').onclick=voidItem;$('markPay').onclick=markWaiting;$('pay').onclick=pay;$('moveTable').onclick=moveTable;$('mergeTable').onclick=mergeTable;$('splitBill').onclick=splitBill;$('openShift').onclick=openShift;$('closeShift').onclick=closeShift;$('addIngredient').onclick=addIngredient;$('postStock').onclick=postStock;$('addMenu').onclick=addMenu;$('setBank').onclick=setBank;$('exportData').onclick=exportData;$('restoreData').onclick=restoreData;$('resetDemo').onclick=resetDemo;
-if(S.user){$('login').classList.add('hide');nav();show(roles[S.user].pages[0],$('nav').querySelector('button'));render()}
+
+async function login() {
+  const email = $('loginEmail').value.trim();
+  const password = $('loginPin').value;
+  const errorBox = $('loginError');
+  errorBox.textContent = '';
+
+  if (!email || !password) {
+    errorBox.textContent = 'Nhập email và mật khẩu.';
+    return;
+  }
+
+  const { data, error } = await sb.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    errorBox.textContent = 'Đăng nhập thất bại. Kiểm tra tài khoản.';
+    return;
+  }
+
+  await loadUser(data.user);
+}
+
+async function loadUser(user) {
+  const { data, error } = await sb
+    .from('users')
+    .select('username, role_code, active')
+    .eq('auth_user_id', user.id)
+    .single();
+
+  if (error || !data || !data.active || !roles[data.role_code]) {
+    await sb.auth.signOut();
+    $('loginError').textContent =
+      'Tài khoản chưa được cấp quyền sử dụng POS.';
+    return;
+  }
+
+  S.user = data.role_code;
+  $('login').classList.add('hide');
+  nav();
+  show(roles[S.user].pages[0]);
+  render();
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  S.user = null;
+  $('login').classList.remove('hide');
+  $('loginPin').value = '';
+  $('loginError').textContent = '';
+  $('nav').innerHTML = '';
+}
+
+$('loginBtn').onclick = login;
+$('loginPin').addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+$('searchMenu').oninput = renderSale;
+
+(async function init() {
+  const { data } = await sb.auth.getUser();
+  if (data.user) {
+    await loadUser(data.user);
+  }
+})();
 })();
