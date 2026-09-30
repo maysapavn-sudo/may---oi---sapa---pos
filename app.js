@@ -85,7 +85,9 @@ async function login() {
   });
 
   if (error) {
-    errorBox.textContent = 'Đăng nhập thất bại. Kiểm tra tài khoản.';
+      errorBox.textContent = 'Lỗi: ' + error.message;
+    return;
+}
     return;
   }
 
