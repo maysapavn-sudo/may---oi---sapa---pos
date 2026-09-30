@@ -3,6 +3,21 @@ const SUPABASE_URL = 'https://eznqzduljevrtwdlaxqk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_KiYRfW2jD10Kdlzak5a98Q_YSt8-D0h';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+async function loadMenuFromSupabase() {
+  const { data, error } = await sb
+    .from('menu_items')
+    .select('*')
+    .eq('active', true);
+
+  if (error) {
+    console.error('Lỗi tải menu Supabase:', error);
+    return false;
+  }
+
+  console.log('MENU SUPABASE:', data);
+  return data;
+}
+      
       
 const $=id=>document.getElementById(id), money=n=>new Intl.NumberFormat('vi-VN').format(Math.round(Number(n)||0))+' đ', now=()=>new Date().toLocaleString('vi-VN'), today=()=>new Date().toISOString().slice(0,10);
 const roles={owner:{name:'OWNER',pages:['sale','kds','shift','stock','recipes','menuadmin','dashboard','risk','audit','backup'],disc:100,pay:1,approve:1,bank:1},manager:{name:'QUẢN LÝ',pages:['sale','kds','shift','stock','recipes','dashboard','risk','audit'],disc:20,pay:1,approve:1},cashier:{name:'THU NGÂN',pages:['sale','shift','dashboard'],disc:5,pay:1},waiter:{name:'PHỤC VỤ',pages:['sale'],disc:0},kitchen:{name:'BẾP',pages:['kds']},bar:{name:'BAR',pages:['kds']},stock:{name:'KHO/KẾ TOÁN',pages:['stock','recipes','dashboard','audit']}};
