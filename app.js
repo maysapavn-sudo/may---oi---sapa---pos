@@ -88,8 +88,6 @@ async function login() {
       errorBox.textContent = 'Lỗi: ' + error.message;
     return;
 }
-    return;
-  }
 
   await loadUser(data.user);
 }
