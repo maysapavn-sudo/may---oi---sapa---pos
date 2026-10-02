@@ -1,5 +1,3 @@
-
-App · JS
 (()=>{'use strict';
 const SUPABASE_URL = 'https://eznqzduljevrtwdlaxqk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_KiYRfW2jD10Kdlzak5a98Q_YSt8-D0h';
