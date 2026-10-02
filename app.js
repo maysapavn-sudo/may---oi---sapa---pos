@@ -121,6 +121,20 @@ async function loadUser(user) {
     return;
   }
 
+const menuData = await loadMenuFromSupabase();
+if (menuData) {
+  S.menu = menuData.map(x => ({
+    id: x.id,
+    code: x.code,
+    name: x.name,
+    en: x.name_en || '',
+    cat: x.category,
+    price: Number(x.price),
+    station: x.station,
+    active: x.active
+  }));
+} 
+  
   S.user = data.role_code;
   $('login').classList.add('hide');
   nav();
