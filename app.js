@@ -1,23 +1,24 @@
+
+App · JS
 (()=>{'use strict';
 const SUPABASE_URL = 'https://eznqzduljevrtwdlaxqk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_KiYRfW2jD10Kdlzak5a98Q_YSt8-D0h';
-
+ 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 async function loadMenuFromSupabase() {
   const { data, error } = await sb
     .from('menu_items')
     .select('*')
     .eq('active', true);
-
+ 
   if (error) {
     console.error('Lỗi tải menu Supabase:', error);
     return false;
   }
-
+ 
   console.log('MENU SUPABASE:', data);
   return data;
 }
-   loadMenuFromSupabase();   
       
 const $=id=>document.getElementById(id), money=n=>new Intl.NumberFormat('vi-VN').format(Math.round(Number(n)||0))+' đ', now=()=>new Date().toLocaleString('vi-VN'), today=()=>new Date().toISOString().slice(0,10);
 const roles={owner:{name:'OWNER',pages:['sale','kds','shift','stock','recipes','menuadmin','dashboard','risk','audit','backup'],disc:100,pay:1,approve:1,bank:1},manager:{name:'QUẢN LÝ',pages:['sale','kds','shift','stock','recipes','dashboard','risk','audit'],disc:20,pay:1,approve:1},cashier:{name:'THU NGÂN',pages:['sale','shift','dashboard'],disc:5,pay:1},waiter:{name:'PHỤC VỤ',pages:['sale'],disc:0},kitchen:{name:'BẾP',pages:['kds']},bar:{name:'BAR',pages:['kds']},stock:{name:'KHO/KẾ TOÁN',pages:['stock','recipes','dashboard','audit']}};
@@ -44,12 +45,12 @@ function renderSale(){
  let ms=S.menu.filter(x=>x.active&&(cat==='TẤT CẢ'||x.cat===cat)&&(!search||x.name.toLowerCase().includes(search)||x.en.toLowerCase().includes(search)));$('products').innerHTML='';ms.forEach(p=>{let b=document.createElement('button');b.className='product';b.innerHTML='<b>'+p.name+'</b><br>'+money(p.price);b.onclick=()=>addItem(p.id);$('products').appendChild(b)});
  const a=S.orders[S.table]||[];$('billHead').textContent=S.table?'BÀN '+String(S.table).padStart(2,'0')+' · '+a.reduce((n,x)=>n+x.qty,0)+' MÓN':'CHƯA CHỌN BÀN';$('order').innerHTML=a.length?'':'<div class=empty>Bấm món bên trái → món sẽ hiện tại đây ngay.</div>';
  a.forEach(x=>{let d=document.createElement('div');d.className='item';d.innerHTML='<div><div class=itemname>'+x.name+'</div><small>'+money(x.price)+' × '+x.qty+' = '+money(x.price*x.qty)+'</small><br><small>'+(x.note?'Ghi chú: '+x.note:'')+'</small></div><div class=qty><button data-q="'+x.id+'" data-d="-1">−</button><b>'+x.qty+'</b><button data-q="'+x.id+'" data-d="1">+</button><button data-note="'+x.id+'">✎</button></div>';$('order').appendChild(d)});
- document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>changeQty(+b.dataset.q,+b.dataset.d));document.querySelectorAll('[data-note]').forEach(b=>b.onclick=()=>noteItem(+b.dataset.note));
+ document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>changeQty(b.dataset.q,+b.dataset.d));document.querySelectorAll('[data-note]').forEach(b=>b.onclick=()=>noteItem(b.dataset.note));
  let t=total();$('billSummary').innerHTML=t.d?'<p>Tạm tính: '+money(t.sub)+'<br>Giảm: '+t.d+'%</p>':'';$('total').textContent=money(t.total)
 }
 function addItem(id){if(!S.table)return alert('Hãy chọn bàn trước.');if(['kitchen','bar','stock'].includes(S.user))return alert('Tài khoản này không có quyền order.');let p=S.menu.find(x=>x.id===id),a=S.orders[S.table]??=[];let x=a.find(q=>q.id===id);if(x)x.qty++;else a.push({id:p.id,name:p.name,price:p.price,station:p.station,qty:1,sent:0,note:''});S.tableStatus[S.table]='busy';log('THÊM MÓN','Bàn '+S.table+': '+p.name);renderSale();toast('✓ '+p.name+' đã vào hóa đơn')}
-function changeQty(id,d){let a=S.orders[S.table]||[],x=a.find(q=>q.id===id);if(!x)return;if(d<0&&x.sent>=x.qty)return alert('Món đã gửi Bếp/Bar. Muốn hủy phải dùng HỦY MÓN.');x.qty+=d;if(x.qty<=0)a.splice(a.indexOf(x),1);log('ĐỔI SỐ LƯỢNG','Bàn '+S.table+', món '+id+', '+d);renderSale()}
-function noteItem(id){let x=(S.orders[S.table]||[]).find(q=>q.id===id);if(!x)return;let n=prompt('Ghi chú món',x.note||'');if(n!==null){x.note=n;log('GHI CHÚ MÓN','Bàn '+S.table+': '+x.name+' | '+n);renderSale()}}
+function changeQty(id,d){let a=S.orders[S.table]||[],x=a.find(q=>String(q.id)===String(id));if(!x)return;if(d<0&&x.sent>=x.qty)return alert('Món đã gửi Bếp/Bar. Muốn hủy phải dùng HỦY MÓN.');x.qty+=d;if(x.qty<=0)a.splice(a.indexOf(x),1);log('ĐỔI SỐ LƯỢNG','Bàn '+S.table+', món '+id+', '+d);renderSale()}
+function noteItem(id){let x=(S.orders[S.table]||[]).find(q=>String(q.id)===String(id));if(!x)return;let n=prompt('Ghi chú món',x.note||'');if(n!==null){x.note=n;log('GHI CHÚ MÓN','Bàn '+S.table+': '+x.name+' | '+n);renderSale()}}
 function sendOrder(){if(!S.table)return alert('Chọn bàn.');let n=0;(S.orders[S.table]||[]).forEach(x=>{let delta=x.qty-(x.sent||0);if(delta>0){S.tickets.push({id:Date.now()+Math.random(),table:S.table,itemId:x.id,item:x.name,qty:delta,note:x.note,station:x.station,status:'MỚI',created:Date.now()});x.sent=x.qty;n++}});if(!n)return alert('Không có món mới để gửi.');log('GỬI BẾP/BAR','Bàn '+S.table+': '+n+' dòng món');save();render();toast('Đã gửi Bếp/Bar')}
 function renderKDS(){let station=S.user==='bar'?'bar':S.user==='kitchen'?'kitchen':null;$('kdsTitle').textContent=station==='bar'?'BAR DISPLAY':station==='kitchen'?'KITCHEN DISPLAY':'BẾP / BAR';let ts=S.tickets.filter(t=>t.status!=='ĐÃ PHỤC VỤ'&&(!station||t.station===station));$('tickets').innerHTML=ts.length?'':'<div class=empty>Chưa có món.</div>';ts.forEach(t=>{let d=document.createElement('div');d.className='ticket '+(t.status==='MỚI'?'new':t.status==='HOÀN THÀNH'?'done':'');let mins=Math.floor((Date.now()-t.created)/60000);d.innerHTML='<h3>Bàn '+String(t.table).padStart(2,'0')+'</h3><b>'+t.qty+' × '+t.item+'</b><p>'+(t.note||'')+'</p><p><span class=badge>'+t.status+'</span> · '+mins+' phút</p><button data-ticket="'+t.id+'" class=primary>CẬP NHẬT</button>';$('tickets').appendChild(d)});document.querySelectorAll('[data-ticket]').forEach(b=>b.onclick=()=>advanceTicket(b.dataset.ticket))}
 function advanceTicket(id){let t=S.tickets.find(x=>String(x.id)===String(id)),flow=['MỚI','ĐANG LÀM','HOÀN THÀNH','ĐÃ PHỤC VỤ'];if(!t)return;t.status=flow[Math.min(flow.indexOf(t.status)+1,3)];log('TRẠNG THÁI MÓN','Bàn '+t.table+': '+t.item+' → '+t.status);renderKDS()}
@@ -70,11 +71,11 @@ function closeShift(){if(!S.shift)return alert('Chưa mở ca.');let cash=S.paym
 function renderStock(){$('stockIngredient').innerHTML=S.ingredients.map(i=>'<option value="'+i.id+'">'+i.name+' ('+i.unit+')</option>').join('');$('stockTable').innerHTML='<table><tr><th>Mã</th><th>Nguyên liệu</th><th>ĐVT</th><th>Giá nhập</th><th>Tồn LT</th><th>Tồn TT</th><th>Chênh</th></tr>'+S.ingredients.map(i=>'<tr><td>'+i.code+'</td><td>'+i.name+'</td><td>'+i.unit+'</td><td>'+money(i.cost)+'</td><td>'+i.qty.toFixed(2)+'</td><td>'+Number(i.actual??i.qty).toFixed(2)+'</td><td>'+((i.actual??i.qty)-i.qty).toFixed(2)+'</td></tr>').join('')+'</table>';$('stockMoves').innerHTML=S.stockMoves.slice(0,30).map(x=>'<div class=log>'+x.time+' · <b>'+x.type+'</b> · '+x.ingredient+' · '+x.qty+' · '+(x.note||'')+'</div>').join('')}
 function addIngredient(){let code=prompt('Mã nguyên liệu:');if(!code)return;let name=prompt('Tên nguyên liệu:');if(!name)return;let unit=prompt('Đơn vị:','g')||'g';S.ingredients.push({id:Math.max(0,...S.ingredients.map(x=>x.id))+1,code,name,unit,cost:0,qty:0,actual:0});log('THÊM NGUYÊN LIỆU',code+' '+name);render()}
 function postStock(){let ing=S.ingredients.find(x=>x.id===+$('stockIngredient').value),type=$('stockType').value,q=+$('stockQty').value||0,c=+$('stockCost').value||0,n=$('stockSupplier').value;if(!ing||q<0)return alert('Dữ liệu chưa hợp lệ.');if(type==='NHẬP'){if(c)ing.cost=c;ing.qty+=q;ing.actual=(ing.actual??0)+q}else if(type==='XUẤT'||type==='HỦY'){ing.qty-=q;ing.actual=(ing.actual??ing.qty)-q}else if(type==='KIỂM KÊ'){ing.actual=q}S.stockMoves.unshift({time:now(),type,ingredient:ing.name,qty:q,note:n});log(type+' KHO',ing.name+' '+q+' '+ing.unit+' | '+n,type==='HỦY'||type==='KIỂM KÊ');render()}
-function renderRecipes(){$('recipeList').innerHTML=S.menu.filter(m=>m.station==='kitchen'||m.station==='bar').map(m=>{let rs=S.recipes[m.id]||[],cost=rs.reduce((s,r)=>{let i=S.ingredients.find(x=>x.id===r.ing);return s+(i?i.cost*r.qty:0)},0),fc=m.price?cost/m.price*100:0;return '<div class=log><b>'+m.name+'</b> · Giá bán '+money(m.price)+' · Giá vốn '+money(cost)+' · Food Cost <b>'+fc.toFixed(1)+'%</b>'+(fc>35?' ⚠️ VƯỢT 35%':'')+'<br>'+rs.map(r=>{let i=S.ingredients.find(x=>x.id===r.ing);return i?i.name+': '+r.qty+i.unit:''}).join(' · ')+' <button data-recipe="'+m.id+'">SỬA</button></div>'}).join('');document.querySelectorAll('[data-recipe]').forEach(b=>b.onclick=()=>editRecipe(+b.dataset.recipe))}
-function editRecipe(mid){let m=S.menu.find(x=>x.id===mid);let text=(S.recipes[mid]||[]).map(r=>{let i=S.ingredients.find(x=>x.id===r.ing);return i?i.code+':'+r.qty:''}).join(',');let v=prompt('Công thức '+m.name+' theo dạng MÃ:SL, MÃ:SL',text);if(v===null)return;let arr=[];v.split(',').forEach(part=>{let [c,q]=part.trim().split(':'),i=S.ingredients.find(x=>x.code===c);if(i&&+q>0)arr.push({ing:i.id,qty:+q})});S.recipes[mid]=arr;log('SỬA CÔNG THỨC',m.name+' | '+v);render()}
-function renderMenuAdmin(){$('menuTable').innerHTML='<table><tr><th>Mã</th><th>Tên</th><th>Nhóm</th><th>Giá</th><th>Trạm</th><th>Trạng thái</th><th></th></tr>'+S.menu.map(m=>'<tr><td>'+m.code+'</td><td>'+m.name+'</td><td>'+m.cat+'</td><td>'+money(m.price)+'</td><td>'+m.station+'</td><td>'+(m.active?'Đang bán':'Ngừng')+'</td><td><button data-menu="'+m.id+'">SỬA</button></td></tr>').join('')+'</table>';document.querySelectorAll('[data-menu]').forEach(b=>b.onclick=()=>editMenu(+b.dataset.menu))}
+function renderRecipes(){$('recipeList').innerHTML=S.menu.filter(m=>m.station==='kitchen'||m.station==='bar').map(m=>{let rs=S.recipes[m.id]||[],cost=rs.reduce((s,r)=>{let i=S.ingredients.find(x=>x.id===r.ing);return s+(i?i.cost*r.qty:0)},0),fc=m.price?cost/m.price*100:0;return '<div class=log><b>'+m.name+'</b> · Giá bán '+money(m.price)+' · Giá vốn '+money(cost)+' · Food Cost <b>'+fc.toFixed(1)+'%</b>'+(fc>35?' ⚠️ VƯỢT 35%':'')+'<br>'+rs.map(r=>{let i=S.ingredients.find(x=>x.id===r.ing);return i?i.name+': '+r.qty+i.unit:''}).join(' · ')+' <button data-recipe="'+m.id+'">SỬA</button></div>'}).join('');document.querySelectorAll('[data-recipe]').forEach(b=>b.onclick=()=>editRecipe(b.dataset.recipe))}
+function editRecipe(mid){let m=S.menu.find(x=>String(x.id)===String(mid));let text=(S.recipes[mid]||[]).map(r=>{let i=S.ingredients.find(x=>x.id===r.ing);return i?i.code+':'+r.qty:''}).join(',');let v=prompt('Công thức '+m.name+' theo dạng MÃ:SL, MÃ:SL',text);if(v===null)return;let arr=[];v.split(',').forEach(part=>{let [c,q]=part.trim().split(':'),i=S.ingredients.find(x=>x.code===c);if(i&&+q>0)arr.push({ing:i.id,qty:+q})});S.recipes[mid]=arr;log('SỬA CÔNG THỨC',m.name+' | '+v);render()}
+function renderMenuAdmin(){$('menuTable').innerHTML='<table><tr><th>Mã</th><th>Tên</th><th>Nhóm</th><th>Giá</th><th>Trạm</th><th>Trạng thái</th><th></th></tr>'+S.menu.map(m=>'<tr><td>'+m.code+'</td><td>'+m.name+'</td><td>'+m.cat+'</td><td>'+money(m.price)+'</td><td>'+m.station+'</td><td>'+(m.active?'Đang bán':'Ngừng')+'</td><td><button data-menu="'+m.id+'">SỬA</button></td></tr>').join('')+'</table>';document.querySelectorAll('[data-menu]').forEach(b=>b.onclick=()=>editMenu(b.dataset.menu))}
 function addMenu(){let code=prompt('Mã món:');if(!code)return;let name=prompt('Tên món:');if(!name)return;let price=+prompt('Giá bán:');let cat=prompt('Nhóm:','MÓN CHÍNH')||'MÓN CHÍNH',station=prompt('Trạm: kitchen hoặc bar','kitchen')||'kitchen';S.menu.push({id:Math.max(0,...S.menu.map(x=>x.id))+1,code,name,en:name,cat,price,station,active:true});log('THÊM MÓN',code+' '+name);render()}
-function editMenu(id){let m=S.menu.find(x=>x.id===id);let name=prompt('Tên món:',m.name);if(name===null)return;let price=+prompt('Giá:',m.price),catv=prompt('Nhóm:',m.cat),active=confirm('OK = ĐANG BÁN; Cancel = NGỪNG BÁN');let old=JSON.stringify(m);Object.assign(m,{name,price,cat:catv,active});log('SỬA MÓN',old+' → '+JSON.stringify(m),true);render()}
+function editMenu(id){let m=S.menu.find(x=>String(x.id)===String(id));let name=prompt('Tên món:',m.name);if(name===null)return;let price=+prompt('Giá:',m.price),catv=prompt('Nhóm:',m.cat),active=confirm('OK = ĐANG BÁN; Cancel = NGỪNG BÁN');let old=JSON.stringify(m);Object.assign(m,{name,price,cat:catv,active});log('SỬA MÓN',old+' → '+JSON.stringify(m),true);render()}
 function renderDashboard(){let bills=S.bills,day=bills.filter(b=>new Date(b.time).toISOString().slice(0,10)===today()),rev=day.reduce((s,b)=>s+b.total,0),month=new Date().toISOString().slice(0,7),mrev=bills.filter(b=>new Date(b.time).toISOString().slice(0,7)===month).reduce((s,b)=>s+b.total,0),avg=day.length?rev/day.length:0,disc=day.reduce((s,b)=>s+(b.subtotal-b.total),0);let cash=0,qr=0,card=0;S.payments.filter(p=>new Date(p.time).toISOString().slice(0,10)===today()).forEach(p=>{if(p.method==='Tiền mặt')cash+=p.amount;else if(p.method==='QR/Chuyển khoản')qr+=p.amount;else if(p.method==='Thẻ')card+=p.amount;else{cash+=p.parts.cash||0;qr+=p.parts.qr||0}});$('dashStats').innerHTML=stats([['Doanh thu hôm nay',money(rev)],['Doanh thu tháng',money(mrev)],['Số bill',day.length],['Bill TB',money(avg)],['Tiền mặt',money(cash)],['QR',money(qr)],['Thẻ',money(card)],['Giảm giá',money(disc)],['Hủy món',S.risks.filter(x=>x.action==='HỦY MÓN').length]]);let counts={};bills.forEach(b=>b.items.forEach(i=>counts[i.name]=(counts[i.name]||0)+i.qty));$('topItems').innerHTML='<h3>Top món</h3>'+Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,10).map(x=>'<div class=log>'+x[0]+' <b>'+x[1]+'</b></div>').join('')}
 function renderRisk(){$('bankInfo').textContent=S.bank;$('riskLog').innerHTML=S.risks.map(x=>'<div class=log><b>'+x.action+'</b> · '+x.time+' · '+x.user+'<br>'+x.detail+'</div>').join('')||'Chưa có cảnh báo.'}
 function setBank(){if(!roles[S.user].bank)return alert('Chỉ OWNER được thay đổi.');let v=prompt('Ngân hàng - Chủ tài khoản - Số tài khoản',S.bank);if(!v)return;let old=S.bank;S.bank=v;log('SỬA TÀI KHOẢN NHẬN TIỀN',old+' → '+v,true);render()}
@@ -82,45 +83,45 @@ function renderAudit(){$('auditLog').innerHTML=S.audit.slice(0,300).map(x=>'<div
 function exportData(){let blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='MAY_POS_BACKUP_'+today()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function restoreData(){let f=$('importData').files[0];if(!f)return alert('Chọn file JSON.');let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.menu||!x.orders)throw Error();S=x;save();alert('Khôi phục thành công.');location.reload()}catch(e){alert('File không hợp lệ.')}};r.readAsText(f)}
 function resetDemo(){if(confirm('Xóa toàn bộ dữ liệu demo?')){S=defaultState();save();location.reload()}}
-
+ 
 async function login() {
   const email = $('loginEmail').value.trim();
   const password = $('loginPin').value;
   const errorBox = $('loginError');
   errorBox.textContent = '';
-
+ 
   if (!email || !password) {
     errorBox.textContent = 'Nhập email và mật khẩu.';
     return;
   }
-
+ 
   const { data, error } = await sb.auth.signInWithPassword({
     email,
     password
   });
-
+ 
   if (error) {
       errorBox.textContent = 'Lỗi: ' + error.message;
     return;
 }
-
+ 
   await loadUser(data.user);
 }
-
+ 
 async function loadUser(user) {
   const { data, error } = await sb
     .from('users')
     .select('username, role_code, active')
     .eq('auth_user_id', user.id)
     .single();
-
+ 
   if (error || !data || !data.active || !roles[data.role_code]) {
     await sb.auth.signOut();
     $('loginError').textContent =
       'Tài khoản chưa được cấp quyền sử dụng POS.';
     return;
   }
-
+ 
 const menuData = await loadMenuFromSupabase();
 if (menuData) {
   S.menu = menuData.map(x => ({
@@ -141,7 +142,7 @@ if (menuData) {
   show(roles[S.user].pages[0]);
   render();
 }
-
+ 
 async function logout() {
   await sb.auth.signOut();
   S.user = null;
@@ -150,13 +151,23 @@ async function logout() {
   $('loginError').textContent = '';
   $('nav').innerHTML = '';
 }
-
+ 
 $('loginBtn').onclick = login;
 $('loginPin').addEventListener('keydown', e => {
   if (e.key === 'Enter') login();
 });
-$('searchMenu').oninput = renderSale;
-
+$('searchMenu').oninput = e => { search = e.target.value.trim().toLowerCase(); renderSale(); };
+ 
+// Gắn sự kiện cho các nút (trước đây bị thiếu nên bấm không có tác dụng)
+const actions = {
+  send: sendOrder, discount: doDiscount, voidItem: voidItem, splitBill: splitBill,
+  markPay: markWaiting, pay: pay, moveTable: moveTable, mergeTable: mergeTable,
+  openShift: openShift, closeShift: closeShift, addIngredient: addIngredient,
+  postStock: postStock, addMenu: addMenu, setBank: setBank,
+  exportData: exportData, restoreData: restoreData, resetDemo: resetDemo
+};
+Object.entries(actions).forEach(([id, fn]) => { const el = $(id); if (el) el.onclick = fn; });
+ 
 (async function init() {
   const { data } = await sb.auth.getUser();
   if (data.user) {
@@ -164,3 +175,4 @@ $('searchMenu').oninput = renderSale;
   }
 })();
 })();
+ 
