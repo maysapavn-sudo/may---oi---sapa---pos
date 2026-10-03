@@ -23,3 +23,15 @@
 .muted{color:#666;font-size:13px}.tablewrap{overflow:auto}
 .product small{font-weight:400;color:#555}
 @media print{body.printing-modal .bill,body.printing-modal .bill *{visibility:hidden}body.printing-modal .printarea,body.printing-modal .printarea *{visibility:visible}body.printing-modal .printarea{position:absolute;left:0;top:0;width:80mm}}
+
+/* ===== Giai đoạn 2 ===== */
+.nbadge{display:inline-block;min-width:20px;padding:2px 6px;border-radius:999px;background:#c62828;color:#fff;font-size:11px;margin-left:4px}
+.notice-row{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;font-weight:400;background:#fff;border:1px solid #dde3ea;border-left:5px solid #0b6db5;margin:6px 0;padding:12px}
+.notice-row.warn{border-left-color:#c62828;background:#fff7f6}
+.resvrow{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #eee;padding:10px 4px}
+.resvrow small{color:#555}.resvrow .rowgap{margin-top:0}.resvrow button{padding:7px 10px}
+.badge.res-new{background:#e3f0fb;color:#0b6db5}.badge.res-ok{background:#dff3e6;color:#15803d}.badge.res-off{background:#eee;color:#777}.badge.res-late{background:#fde8e7;color:#c62828}
+.btnlink{display:inline-block;padding:7px 12px;border:1px solid #b8c1b8;border-radius:9px;color:#172019;text-decoration:none;font-weight:800}
+.recrow{display:grid;grid-template-columns:1fr 110px auto;gap:6px;margin:6px 0}.recrow button{padding:6px 10px}
+#stockTable td,#stockMoves td,#recipeList td,#cashList td,#shiftHistory td{vertical-align:top}
+#closeBox,#openBox{margin-top:10px}
