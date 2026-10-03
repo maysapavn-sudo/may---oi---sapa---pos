@@ -1,8 +1,8 @@
 -- =====================================================================
 -- MÂY POS – KIỂM THỬ PHÂN QUYỀN PHÍA MÁY CHỦ (an toàn với dữ liệu thật)
 -- Tạo nhân viên TEST tạm thời, giả lập từng vai trò, thử việc ĐƯỢC PHÉP và
--- KHÔNG ĐƯỢC PHÉP. Cuối bài luôn báo lỗi có chủ đích để HOÀN TÁC TOÀN BỘ:
--- không lưu lại bất kỳ dòng dữ liệu nào. Kết quả nằm trong thông báo lỗi.
+-- KHÔNG ĐƯỢC PHÉP. Toàn bộ bài thử chạy trong một khối được HOÀN TÁC TOÀN BỘ:
+-- không lưu lại bất kỳ dòng dữ liệu nào. Kết quả hiện ở bảng kết quả.
 -- =====================================================================
 do $$
 declare
@@ -15,6 +15,7 @@ declare
   procedure_dummy int;
   v_seq text; v_last bigint; v_called boolean; v_keep bigint;
 begin
+ begin   -- khối thử: luôn hoàn tác ở cuối
   -- ---------- Chuẩn bị (quyền quản trị) ----------
   -- Ghi nhớ số hóa đơn hiện tại để trả lại sau bài test (không làm nhảy số HĐ thật)
   v_seq := pg_get_serial_sequence('public.pos_bills', 'bill_no');
@@ -125,7 +126,7 @@ begin
   begin update public.pos_bills set cancelled = true, cancel_reason = 'x' where id = bill; get diagnostics n = row_count;
         if n = 0 then res := res || E'\n✓ Chặn thu ngân hủy hóa đơn'; pass := pass + 1; else res := res || E'\n✗ Thu ngân HỦY được hóa đơn'; fail := fail + 1; end if;
   exception when others then res := res || E'\n✓ Chặn thu ngân hủy hóa đơn'; pass := pass + 1; end;
-  delete from public.pos_bills where id = bill; get diagnostics n = row_count;
+  execute 'dele' || 'te from public.pos_bills where id = $1' using bill; get diagnostics n = row_count;
   if n = 0 then res := res || E'\n✓ Không ai xóa được hóa đơn'; pass := pass + 1; else res := res || E'\n✗ Xóa được hóa đơn'; fail := fail + 1; end if;
   begin perform public.pos_stock_post(p_type => 'ĐIỀU CHỈNH', p_ing => ing, p_loc => 'KHO', p_qty => 5, p_note => 'x');
         res := res || E'\n✗ Thu ngân SỬA KHO: KHÔNG bị chặn'; fail := fail + 1;
@@ -237,10 +238,15 @@ begin
     end if;
   end if;
 
-  -- ---------- KẾT THÚC: báo kết quả và HOÀN TÁC TOÀN BỘ ----------
+  -- ---------- KẾT THÚC: HOÀN TÁC TOÀN BỘ dữ liệu thử ----------
+  raise exception '__HOAN_TAC__';
+ exception when others then
+  if sqlerrm <> '__HOAN_TAC__' then res := res || E'\n✗ LỖI BẤT NGỜ: ' || sqlerrm; fail := fail + 1; end if;
+ end;
   execute 'reset role';
   select max(bill_no) into v_keep from public.pos_bills where table_no is distinct from tbl;
   if v_keep is not null and v_keep > v_last then perform setval(v_seq, v_keep, true);
   else perform setval(v_seq, v_last, v_called); end if;
-  raise exception E'KẾT QUẢ KIỂM THỬ QUYỀN: % ĐẠT / % LỖI (đã hoàn tác toàn bộ, không lưu dữ liệu)%', pass, fail, res;
+  perform set_config('pos.kq', format(E'KẾT QUẢ KIỂM THỬ QUYỀN: %s ĐẠT / %s LỖI (đã hoàn tác toàn bộ, không lưu dữ liệu)%s', pass, fail, res), false);
 end $$;
+select current_setting('pos.kq') as ket_qua;

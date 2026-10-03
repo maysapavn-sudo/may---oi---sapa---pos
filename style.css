@@ -35,3 +35,15 @@
 .recrow{display:grid;grid-template-columns:1fr 110px auto;gap:6px;margin:6px 0}.recrow button{padding:6px 10px}
 #stockTable td,#stockMoves td,#recipeList td,#cashList td,#shiftHistory td{vertical-align:top}
 #closeBox,#openBox{margin-top:10px}
+
+.hdr-r{display:flex;gap:10px;align-items:center}.devbtn{padding:6px 10px;font-size:12px}
+.permgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:4px 12px;margin:8px 0}.permgrid label{display:flex;gap:6px;align-items:center;font-size:14px}
+#impPreview{margin-top:10px;max-height:420px;overflow:auto}
+#printArea{display:none}
+.slip,.slip *{color:#000}.slip-h{text-align:center;font-weight:800;font-size:15px}.slip-big{font-size:20px;font-weight:900;text-align:center;margin:4px 0}
+.slip-row{display:flex;justify-content:space-between;gap:6px}.slip-re{text-align:center;font-weight:900;border:2px solid #000;margin:4px 0;padding:2px}
+.slip-item{font-weight:800;font-size:15px;margin-top:4px}.slip-note{font-style:italic;padding-left:10px}.slip-f{text-align:center;margin-top:6px;font-size:11px}
+.slip hr{border:0;border-top:1px dashed #000;margin:4px 0}.bl-store{text-align:center;font-weight:900;font-size:16px}.bl-c{text-align:center}.bl-total{font-size:16px;font-weight:900}
+.pagebreak{page-break-after:always;break-after:page}
+@media print{html,body.printing{background:#fff!important}body.printing>*:not(#printArea){display:none!important}body.printing #printArea,body.printing #printArea *{visibility:visible!important}body.printing #printArea{position:static!important;display:block!important;width:72mm;margin:0;padding:0 2mm;font:12px/1.35 'Courier New',monospace;color:#000;background:#fff}@page{size:80mm auto;margin:0}}
+.bl-item{font-weight:700;margin-top:3px}
