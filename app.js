@@ -49,21 +49,31 @@ function nav(){const r=roles[S.user];$('nav').innerHTML='';if(!r)return;r.pages.
 function show(p,b){if(p==='staff')loadStaff();document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));$(p).classList.add('on');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('navon'));if(b)b.classList.add('navon');render()}
 function render(){if(!S.user)return;$('userName').innerHTML=esc(roles[S.user].name)+(S.username?' · '+esc(S.username):'')+' <span id=liveDot class=live></span>';setLiveBadge();renderSale();renderKDS();renderShift();renderStock();renderRecipes();renderMenuAdmin();renderDashboard();renderRisk();renderAudit();renderOverview();renderBills();renderReports();renderBooking();renderNotify();renderStaff();renderStoreInfo();save()}
 function renderSale(){
- $('tables').innerHTML='';for(let i=1;i<=20;i++){let a=S.orders[i]||[],st=S.tableStatus[i]||'',b=document.createElement('button');b.className='table'+(S.table===i?' selected':'')+(a.length?' busy':'')+(st==='waiting'?' waiting':'');b.innerHTML='<b>Bàn '+String(i).padStart(2,'0')+'</b><br>'+(st==='waiting'?'CHỜ THANH TOÁN':a.length?'ĐANG PHỤC VỤ':'TRỐNG');b.onclick=()=>{S.table=i;S.orders[i]??=[];save();renderSale()};$('tables').appendChild(b)}
+ $('tables').innerHTML='';for(let i=1;i<=20;i++){let a=S.orders[i]||[],st=S.tableStatus[i]||'',ob=obx(i),b=document.createElement('button');b.className='table'+(S.table===i?' selected':'')+(a.length||ob?' busy':'')+(st==='waiting'?' waiting':'');b.innerHTML='<b>Bàn '+String(i).padStart(2,'0')+'</b><br>'+(ob?(ob.state==='conflict'?'⚠ XUNG ĐỘT':'⏳ CHƯA ĐỒNG BỘ'):st==='waiting'?'CHỜ THANH TOÁN':a.length?'ĐANG PHỤC VỤ':'TRỐNG');if(ob)b.style.outline='3px solid #e48b0b';b.onclick=()=>{S.table=i;S.orders[i]??=[];save();renderSale()};$('tables').appendChild(b)}
  let cats=['TẤT CẢ',...new Set(S.menu.filter(x=>x.active&&!x.hidden).map(x=>x.cat))];$('cats').innerHTML='';cats.forEach(c=>{let b=document.createElement('button');b.className='cat'+(cat===c?' on':'');b.textContent=c;b.onclick=()=>{cat=c;renderSale()};$('cats').appendChild(b)});
  let ms=S.menu.filter(x=>x.active&&!x.hidden&&(cat==='TẤT CẢ'||x.cat===cat)&&(!search||x.name.toLowerCase().includes(search)||(x.en||'').toLowerCase().includes(search)||String(x.code||'').toLowerCase().includes(search)));$('products').innerHTML='';ms.forEach(p=>{let b=document.createElement('button');b.className='product';b.innerHTML='<b>'+(p.signature?'★ ':'')+esc(p.name)+'</b><br>'+(p.marketPrice?'Thời giá':money(p.price))+(p.unit?'<small>/'+esc(p.unit)+'</small>':'');b.onclick=()=>addItem(p.id);$('products').appendChild(b)});
  const a=S.orders[S.table]||[];$('billHead').textContent=S.table?'BÀN '+String(S.table).padStart(2,'0')+' · '+a.reduce((n,x)=>n+x.qty,0)+' MÓN':'CHƯA CHỌN BÀN';$('order').innerHTML=a.length?'':'<div class=empty>Bấm món bên trái → món sẽ hiện tại đây ngay.</div>';
  a.forEach(x=>{let d=document.createElement('div');d.className='item';d.innerHTML='<div><div class=itemname>'+x.name+'</div><small>'+money(x.price)+' × '+x.qty+' = '+money(x.price*x.qty)+'</small><br><small>'+(x.note?'Ghi chú: '+x.note:'')+'</small></div><div class=qty><button data-q="'+x.id+'" data-d="-1">−</button><b>'+x.qty+'</b><button data-q="'+x.id+'" data-d="1">+</button><button data-note="'+x.id+'">✎</button></div>';$('order').appendChild(d)});
+ const ob=S.table?obx(S.table):null;if(ob){const pq=obxQty(ob),psub=ob.ops.reduce((s,x)=>s+x.item.price*x.qty,0);
+  $('billHead').textContent+=' + '+pq+' CHƯA ĐỒNG BỘ';if(!a.length)$('order').innerHTML='';
+  const box=document.createElement('div');box.className='notice';box.style.cssText='border:2px solid '+(ob.state==='pending'?'#e48b0b':'#b42318')+';background:#fff7e8;padding:8px;margin:6px 0;border-radius:8px';
+  box.innerHTML='<b>'+(ob.state==='conflict'?'⚠ XUNG ĐỘT – CHƯA ĐỒNG BỘ':ob.state==='error'?'⚠ MÁY CHỦ TỪ CHỐI – CHƯA ĐỒNG BỘ':'⏳ CHƯA ĐỒNG BỘ')+'</b><br><small>'+(ob.state==='conflict'?'Bàn này đã được máy khác thay đổi trong lúc máy này chưa đồng bộ. Các món dưới đây CHƯA có trên máy chủ.'+(ob.srv?' Máy chủ hiện có: '+esc(ob.srv)+'.':' Máy chủ hiện không có món nào ở bàn này.'):ob.state==='error'?'Máy chủ không nhận: '+esc(ob.msg||''):'Các món dưới đây đang giữ tạm trên máy này và sẽ tự gửi khi có mạng. Chưa được gửi Bếp/Bar, chưa thanh toán được.')+'</small>'
+   +ob.ops.map(x=>'<div class=item><div><div class=itemname>⏳ '+esc(x.item.name)+'</div><small>'+money(x.item.price)+' × '+x.qty+' = '+money(x.item.price*x.qty)+(x.tried?' · đã gửi, chờ xác nhận':'')+'</small></div><div class=qty>'+(x.tried?'':'<button data-pq="'+x.id+'">−</button>')+'<b>'+x.qty+'</b></div></div>').join('')
+   +'<small>Chưa đồng bộ: '+pq+' món · '+money(psub)+'</small><br>'+(ob.state==='conflict'?'<button data-obx="apply" class=primary>THÊM VÀO BÀN (bản mới nhất)</button> ':'<button data-obx="retry" class=primary>THỬ LẠI</button> ')+'<button data-obx="drop" class=danger>BỎ CÁC MÓN NÀY</button>';
+  $('order').appendChild(box);
+  box.querySelectorAll('[data-pq]').forEach(b=>b.onclick=()=>obxMinus(S.table,b.dataset.pq));
+  box.querySelectorAll('[data-obx]').forEach(b=>b.onclick=async()=>{const t=S.table,k=b.dataset.obx;if(k==='apply')return obxApplyLatest(t);if(k==='drop')return obxDrop(t);const o=obx(t);if(o&&o.state==='error'){o.state='pending';o.msg='';saveObx()}const r=await syncTable(t);toast(r==='ok'?'✓ Đã đồng bộ Bàn '+t:r==='offline'?'⚠️ Chưa kết nối được máy chủ':'⚠️ Bàn '+t+': '+r)})}
  document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>changeQty(b.dataset.q,+b.dataset.d));document.querySelectorAll('[data-note]').forEach(b=>b.onclick=()=>noteItem(b.dataset.note));
  let t=total();$('billSummary').innerHTML=t.d?'<p>Tạm tính: '+money(t.sub)+'<br>Giảm: '+t.d+'%</p>':'';$('total').textContent=money(t.total)
 }
-function addItem(id){if(!S.table)return alert('Hãy chọn bàn trước.');if(!has('order'))return alert('Tài khoản này không có quyền gọi món.');let p=S.menu.find(x=>x.id===id);if(!p)return;let price=p.price;if(p.marketPrice){const v=prompt('Món theo thời giá – nhập giá bán cho '+p.name+(p.unit?' (/'+p.unit+')':''),p.price||'');if(v===null)return;price=Number(String(v).replace(/[^\d]/g,''));if(!price)return alert('Giá không hợp lệ.')}let a=S.orders[S.table]??=[];let x=a.find(q=>q.id===id&&q.price===price&&!q.note);if(x)x.qty++;else a.push({id:p.id,name:p.name,price,station:p.station,unit:p.unit||'',qty:1,sent:0,note:''});S.tableStatus[S.table]='busy';log('THÊM MÓN','Bàn '+S.table+': '+p.name);pushTable(S.table);renderSale();toast('✓ '+p.name+' đã vào hóa đơn')}
-function changeQty(id,d){let a=S.orders[S.table]||[],x=a.find(q=>String(q.id)===String(id));if(!x)return;if(d<0&&x.sent>=x.qty)return alert('Món đã gửi Bếp/Bar. Muốn hủy phải dùng HỦY MÓN.');x.qty+=d;if(x.qty<=0)a.splice(a.indexOf(x),1);log('ĐỔI SỐ LƯỢNG','Bàn '+S.table+', món '+id+', '+d);pushTable(S.table);renderSale()}
-function noteItem(id){let x=(S.orders[S.table]||[]).find(q=>String(q.id)===String(id));if(!x)return;let n=prompt('Ghi chú món',x.note||'');if(n!==null){x.note=n;log('GHI CHÚ MÓN','Bàn '+S.table+': '+x.name+' | '+n);pushTable(S.table);renderSale()}}
+function addItem(id){if(!S.table)return alert('Hãy chọn bàn trước.');if(!has('order'))return alert('Tài khoản này không có quyền gọi món.');let p=S.menu.find(x=>x.id===id);if(!p)return;let price=p.price;if(p.marketPrice){const v=prompt('Món theo thời giá – nhập giá bán cho '+p.name+(p.unit?' (/'+p.unit+')':''),p.price||'');if(v===null)return;price=Number(String(v).replace(/[^\d]/g,''));if(!price)return alert('Giá không hợp lệ.')}const t=S.table;obxAdd(t,{id:p.id,name:p.name,price,station:p.station,unit:p.unit||'',note:''});log('THÊM MÓN','Bàn '+t+': '+p.name);renderSale();toast('✓ '+p.name+' đã vào hóa đơn');syncTable(t)}
+function changeQty(id,d){let a=S.orders[S.table]||[],x=a.find(q=>String(q.id)===String(id));if(!x)return;if(d>0){if(!has('order'))return alert('Tài khoản này không có quyền gọi món.');const t=S.table;obxAdd(t,{id:x.id,name:x.name,price:x.price,station:x.station,unit:x.unit||'',note:x.note||''});log('ĐỔI SỐ LƯỢNG','Bàn '+t+', món '+id+', +1');renderSale();syncTable(t);return}if(obx(S.table)){obxReady(S.table,'bớt món');return}if(d<0&&x.sent>=x.qty)return alert('Món đã gửi Bếp/Bar. Muốn hủy phải dùng HỦY MÓN.');x.qty+=d;if(x.qty<=0)a.splice(a.indexOf(x),1);log('ĐỔI SỐ LƯỢNG','Bàn '+S.table+', món '+id+', '+d);pushTable(S.table);renderSale()}
+function noteItem(id){if(obxBlock(S.table,'sửa ghi chú'))return;let x=(S.orders[S.table]||[]).find(q=>String(q.id)===String(id));if(!x)return;let n=prompt('Ghi chú món',x.note||'');if(n!==null){x.note=n;log('GHI CHÚ MÓN','Bàn '+S.table+': '+x.name+' | '+n);pushTable(S.table);renderSale()}}
 async function sendOrder(){if(!has('order'))return alert('Không có quyền gửi Bếp/Bar.');if(!S.table)return alert('Chọn bàn.');const table=S.table;
+  if(obx(table)&&!(await obxReady(table,'gửi Bếp/Bar')))return;
   if(!(S.orders[table]||[]).some(x=>x.qty>(x.sent||0)))return alert('Không có món mới để gửi.');
   const btn=$('send');if(btn)btn.disabled=true;
-  try{if(unsynced[table])await pushTable(table);if(pushing[table])await pushing[table];if(unsynced[table])return alert('Chưa lưu được Bàn '+table+' lên hệ thống (mất mạng?). Kiểm tra kết nối rồi bấm GỬI lại.');              // đảm bảo máy chủ đã có đơn mới nhất
+  try{if(pushing[table])await pushing[table];if(obx(table))return obxBlock(table,'gửi Bếp/Bar');              // đảm bảo máy chủ đã có đơn mới nhất
     const batch=uid();const{data,error}=await sb.rpc('pos_send_order',{p_table:table,p_batch:batch});
     if(error){if(/POS_CONFLICT/.test(error.message))return reloadTable(table,true);syncFail('gửi Bếp/Bar',error);return alert('Chưa gửi được Bếp/Bar: '+error.message)}
     await reloadTable(table,false);
@@ -73,14 +83,14 @@ async function sendOrder(){if(!has('order'))return alert('Không có quyền g�
   finally{if(btn)btn.disabled=false}}
 function renderKDS(){let station=kdsStation();$('kdsTitle').textContent=station==='bar'?'BAR DISPLAY':station==='kitchen'?'KITCHEN DISPLAY':'BẾP / BAR';let ts=S.tickets.filter(t=>t.status!=='ĐÃ PHỤC VỤ'&&(!station||(station==='bar')===(t.station==='bar')));$('tickets').innerHTML=ts.length?'':'<div class=empty>Chưa có món.</div>';ts.forEach(t=>{let d=document.createElement('div');d.className='ticket '+(t.status==='MỚI'?'new':t.status==='HOÀN THÀNH'?'done':'');let mins=Math.floor((Date.now()-t.created)/60000);d.innerHTML='<h3>Bàn '+String(t.table).padStart(2,'0')+'</h3><b>'+t.qty+' × '+esc(t.item)+'</b><p>'+esc(t.note||'')+'</p><p><span class=badge>'+t.status+'</span> · '+mins+' phút</p><p><small>Lần #'+(t.round||1)+' · '+esc(t.by||'')+' · '+(t.station==='bar'?'Bar':'Bếp')+'</small></p><button data-ticket="'+t.id+'" class=primary>CẬP NHẬT</button>'+(t.batch?' <button data-reprint="'+t.batch+'|'+(t.station==='bar'?'bar':'kitchen')+'">'+(t.printed?'IN LẠI':'IN PHIẾU')+'</button>':'');$('tickets').appendChild(d)});document.querySelectorAll('[data-ticket]').forEach(b=>b.onclick=()=>advanceTicket(b.dataset.ticket));document.querySelectorAll('[data-reprint]').forEach(b=>b.onclick=()=>{const[bt,st]=b.dataset.reprint.split('|');printBatch(bt,[st],true)})}
 function advanceTicket(id){let t=S.tickets.find(x=>String(x.id)===String(id)),flow=['MỚI','ĐANG LÀM','HOÀN THÀNH','ĐÃ PHỤC VỤ'];if(!t)return;t.status=flow[Math.min(flow.indexOf(t.status)+1,3)];const nowIso=new Date().toISOString(),patch={status:t.status,updated_at:nowIso};if(t.status==='HOÀN THÀNH'){t.done=Date.now();patch.done_at=nowIso}if(t.status==='ĐÃ PHỤC VỤ'){t.served=Date.now();patch.served_at=nowIso;if(!t.done){t.done=t.served;patch.done_at=nowIso}}log('TRẠNG THÁI MÓN','Bàn '+t.table+': '+t.item+' → '+t.status);save();renderKDS();let qy=sb.from('pos_tickets').update(patch).eq('id',t.id);TFLOW.slice(TFLOW.indexOf(t.status)).forEach(st=>{qy=qy.neq('status',st)});qy.then(({error})=>{if(error)syncFail('trạng thái món',error)})}
-function doDiscount(){if(!S.table)return alert('Chọn bàn.');let max=roles[S.user].disc||0;if(!max)return alert('Không có quyền giảm giá.');let d=Number(prompt('Nhập % giảm. Tối đa '+max+'%'));if(!d)return;if(d>max){log('TỪ CHỐI GIẢM GIÁ','Yêu cầu '+d+'%',true);return alert('Vượt quyền.')}S.discounts[S.table]=d;log('GIẢM GIÁ','Bàn '+S.table+': '+d+'%',true);pushTable(S.table);renderSale()}
-function markWaiting(){if(!has('order')&&!has('pay'))return alert('Không có quyền.');if(!S.table)return alert('Chọn bàn.');S.tableStatus[S.table]='waiting';log('CHỜ THANH TOÁN','Bàn '+S.table);pushTable(S.table);renderSale()}
-function pay(){if(!roles[S.user].pay)return alert('Không có quyền thanh toán.');let t=total();if(!S.table||!t.total)return alert('Không có hóa đơn.');modal('<h2>Thanh toán · Bàn '+S.table+'</h2><p>Tạm tính: <b>'+money(t.sub)+'</b><br>Giảm: <b>'+t.d+'%</b></p><div class=total>'+money(t.total)+'</div><select id=pm><option>Tiền mặt</option><option>QR/Chuyển khoản</option><option>Thẻ</option><option>Kết hợp</option></select><input id=guests type=number min=0 placeholder="Số khách"><input id=cashGiven type=number placeholder="Khách đưa (tiền mặt)"><input id=splitCash type=number placeholder="Nếu kết hợp: tiền mặt"><input id=splitQR type=number placeholder="Nếu kết hợp: QR"><button id=confirmPay class="primary wide">XÁC NHẬN</button><button id=printBill class="wide">IN TẠM TÍNH</button>');$('confirmPay').onclick=confirmPay;$('printBill').onclick=printTempBill}
-async function confirmPay(){let t=total(),m=$('pm').value;if(m.includes('QR')&&S.bank==='Chưa cấu hình')return alert('OWNER chưa cấu hình tài khoản nhận tiền.');let parts={};if(m==='Kết hợp'){parts.cash=+$('splitCash').value||0;parts.qr=+$('splitQR').value||0;if(Math.abs(parts.cash+parts.qr-t.total)>1)return alert('Tổng tiền kết hợp chưa bằng số phải thanh toán.')}else parts[m]=t.total;let given=+$('cashGiven').value||0;if(m==='Tiền mặt'&&given&&given<t.total)return alert('Tiền khách đưa chưa đủ.');const btn=$('confirmPay');btn.disabled=true;btn.textContent='ĐANG LƯU...';if(unsynced[S.table])await pushTable(S.table);if(pushing[S.table])await pushing[S.table];if(unsynced[S.table]){btn.disabled=false;btn.textContent='XÁC NHẬN';return alert('Chưa lưu được Bàn '+S.table+' lên hệ thống (mất mạng?). Kiểm tra kết nối rồi bấm XÁC NHẬN lại.')}const table=S.table,items=JSON.parse(JSON.stringify(S.orders[table]||[]));const cashPart=m==='Tiền mặt'?t.total:m==='Kết hợp'?(+parts.cash||0):0,cashGiven=cashPart&&given>=cashPart?given:null,change=cashGiven?Math.round(cashGiven-cashPart):null;
+function doDiscount(){if(!S.table)return alert('Chọn bàn.');if(obx(S.table)){obxReady(S.table,'giảm giá').then(ok=>{if(ok)doDiscount()});return}let max=roles[S.user].disc||0;if(!max)return alert('Không có quyền giảm giá.');let d=Number(prompt('Nhập % giảm. Tối đa '+max+'%'));if(!d)return;if(d>max){log('TỪ CHỐI GIẢM GIÁ','Yêu cầu '+d+'%',true);return alert('Vượt quyền.')}S.discounts[S.table]=d;log('GIẢM GIÁ','Bàn '+S.table+': '+d+'%',true);pushTable(S.table);renderSale()}
+function markWaiting(){if(!has('order')&&!has('pay'))return alert('Không có quyền.');if(!S.table)return alert('Chọn bàn.');if(obx(S.table)){obxReady(S.table,'chuyển chờ thanh toán').then(ok=>{if(ok)markWaiting()});return}S.tableStatus[S.table]='waiting';log('CHỜ THANH TOÁN','Bàn '+S.table);pushTable(S.table);renderSale()}
+function pay(){if(!roles[S.user].pay)return alert('Không có quyền thanh toán.');if(S.table&&obx(S.table)){obxReady(S.table,'thanh toán').then(ok=>{if(ok)pay()});return}let t=total();if(!S.table||!t.total)return alert('Không có hóa đơn.');modal('<h2>Thanh toán · Bàn '+S.table+'</h2><p>Tạm tính: <b>'+money(t.sub)+'</b><br>Giảm: <b>'+t.d+'%</b></p><div class=total>'+money(t.total)+'</div><select id=pm><option>Tiền mặt</option><option>QR/Chuyển khoản</option><option>Thẻ</option><option>Kết hợp</option></select><input id=guests type=number min=0 placeholder="Số khách"><input id=cashGiven type=number placeholder="Khách đưa (tiền mặt)"><input id=splitCash type=number placeholder="Nếu kết hợp: tiền mặt"><input id=splitQR type=number placeholder="Nếu kết hợp: QR"><button id=confirmPay class="primary wide">XÁC NHẬN</button><button id=printBill class="wide">IN TẠM TÍNH</button>');$('confirmPay').onclick=confirmPay;$('printBill').onclick=printTempBill}
+async function confirmPay(){let t=total(),m=$('pm').value;if(m.includes('QR')&&S.bank==='Chưa cấu hình')return alert('OWNER chưa cấu hình tài khoản nhận tiền.');let parts={};if(m==='Kết hợp'){parts.cash=+$('splitCash').value||0;parts.qr=+$('splitQR').value||0;if(Math.abs(parts.cash+parts.qr-t.total)>1)return alert('Tổng tiền kết hợp chưa bằng số phải thanh toán.')}else parts[m]=t.total;let given=+$('cashGiven').value||0;if(m==='Tiền mặt'&&given&&given<t.total)return alert('Tiền khách đưa chưa đủ.');const btn=$('confirmPay');btn.disabled=true;btn.textContent='ĐANG LƯU...';if(pushing[S.table])await pushing[S.table];if(obx(S.table)){btn.disabled=false;btn.textContent='XÁC NHẬN';closeModal();return obxBlock(S.table,'thanh toán')}const table=S.table,items=JSON.parse(JSON.stringify(S.orders[table]||[]));const cashPart=m==='Tiền mặt'?t.total:m==='Kết hợp'?(+parts.cash||0):0,cashGiven=cashPart&&given>=cashPart?given:null,change=cashGiven?Math.round(cashGiven-cashPart):null;
   const{data,error}=await sb.from('pos_bills').insert({id:uid(),table_no:table,items,subtotal:t.sub,discount:t.d,total:t.total,method:m,parts,guests:+$('guests').value||0,created_by:who(),cash_given:cashGiven,change_amount:change}).select().single();if(error){btn.disabled=false;btn.textContent='XÁC NHẬN';if(/POS_PAID|POS_CONFLICT/.test(error.message)){closeModal();await reloadTable(table,false);return alert(error.message.replace(/^.*?POS_(PAID|CONFLICT): */,''))}syncFail('hóa đơn',error);return alert('Chưa lưu được hóa đơn lên hệ thống. Kiểm tra mạng rồi bấm XÁC NHẬN lại.\n('+error.message+')')}applyBillRow(data);S.bills.sort(byTime);rebuildPayments();S.orders[table]=[];S.meta[table]={};delete S.discounts[table];delete S.tableStatus[table];reloadTable(table,false);closeModal();render();toast('✓ Thanh toán thành công'+(change?' · Trả lại '+money(change):''));paidModal(S.bills.find(x=>x.uid===data.id))}
-function moveTable(){if(!has('move_table'))return alert('Không có quyền chuyển bàn.');if(!S.table)return alert('Chọn bàn nguồn.');let to=Number(prompt('Chuyển Bàn '+S.table+' sang bàn số:'));if(!to||to<1||to>20||to===S.table)return;if((S.orders[to]||[]).length)return alert('Bàn đích đang có order.');S.orders[to]=S.orders[S.table]||[];S.orders[S.table]=[];S.tableStatus[to]=S.tableStatus[S.table];delete S.tableStatus[S.table];log('CHUYỂN BÀN','Bàn '+S.table+' → '+to);pushTable(S.table);pushTable(to);S.table=to;render()}
-function mergeTable(){if(!has('move_table'))return alert('Không có quyền gộp bàn.');if(!S.table)return alert('Chọn bàn đích.');let from=Number(prompt('Gộp bàn số nào vào Bàn '+S.table+'?'));if(!from||from===S.table)return;let a=S.orders[from]||[];if(!a.length)return alert('Bàn nguồn trống.');let dest=S.orders[S.table]??=[];a.forEach(x=>{let d=dest.find(y=>y.id===x.id&&y.note===x.note);d?d.qty+=x.qty:dest.push(x)});S.orders[from]=[];delete S.tableStatus[from];log('GỘP BÀN','Bàn '+from+' → '+S.table);pushTable(from);pushTable(S.table);render()}
-function splitBill(){if(!has('move_table'))return alert('Không có quyền tách hóa đơn.');let a=S.orders[S.table]||[];if(!a.length)return alert('Không có món.');let i=Number(prompt(a.map((x,i)=>(i+1)+'. '+x.name+' × '+x.qty).join('\n')+'\nChọn món muốn tách:'))-1;if(i<0||i>=a.length)return;let to=Number(prompt('Tách sang bàn số:'));if(!to||to<1||to>20)return;S.orders[to]??=[];S.orders[to].push(a.splice(i,1)[0]);log('TÁCH HÓA ĐƠN','Bàn '+S.table+' → Bàn '+to);pushTable(S.table);pushTable(to);render()}
+function moveTable(){if(!has('move_table'))return alert('Không có quyền chuyển bàn.');if(!S.table)return alert('Chọn bàn nguồn.');if(obxBlock(S.table,'chuyển bàn'))return;let to=Number(prompt('Chuyển Bàn '+S.table+' sang bàn số:'));if(!to||to<1||to>20||to===S.table)return;if(obxBlock(to,'chuyển bàn'))return;if((S.orders[to]||[]).length)return alert('Bàn đích đang có order.');S.orders[to]=S.orders[S.table]||[];S.orders[S.table]=[];S.tableStatus[to]=S.tableStatus[S.table];delete S.tableStatus[S.table];log('CHUYỂN BÀN','Bàn '+S.table+' → '+to);pushTable(S.table);pushTable(to);S.table=to;render()}
+function mergeTable(){if(!has('move_table'))return alert('Không có quyền gộp bàn.');if(!S.table)return alert('Chọn bàn đích.');if(obxBlock(S.table,'gộp bàn'))return;let from=Number(prompt('Gộp bàn số nào vào Bàn '+S.table+'?'));if(!from||from===S.table)return;if(obxBlock(from,'gộp bàn'))return;let a=S.orders[from]||[];if(!a.length)return alert('Bàn nguồn trống.');let dest=S.orders[S.table]??=[];a.forEach(x=>{let d=dest.find(y=>y.id===x.id&&y.note===x.note);d?d.qty+=x.qty:dest.push(x)});S.orders[from]=[];delete S.tableStatus[from];log('GỘP BÀN','Bàn '+from+' → '+S.table);pushTable(from);pushTable(S.table);render()}
+function splitBill(){if(!has('move_table'))return alert('Không có quyền tách hóa đơn.');if(S.table&&obxBlock(S.table,'tách hóa đơn'))return;let a=S.orders[S.table]||[];if(!a.length)return alert('Không có món.');let i=Number(prompt(a.map((x,i)=>(i+1)+'. '+x.name+' × '+x.qty).join('\n')+'\nChọn món muốn tách:'))-1;if(i<0||i>=a.length)return;let to=Number(prompt('Tách sang bàn số:'));if(!to||to<1||to>20)return;if(obxBlock(to,'tách hóa đơn'))return;S.orders[to]??=[];S.orders[to].push(a.splice(i,1)[0]);log('TÁCH HÓA ĐƠN','Bàn '+S.table+' → Bàn '+to);pushTable(S.table);pushTable(to);render()}
 function stats(arr){return arr.map(x=>'<div class=stat>'+x[0]+'<b>'+x[1]+'</b></div>').join('')}
 function renderDashboard(){let bills=S.bills.filter(b=>!b.cancelled),day=bills.filter(b=>dayKey(b.time)===today()),rev=day.reduce((s,b)=>s+b.total,0),month=today().slice(0,7),mrev=bills.filter(b=>dayKey(b.time).slice(0,7)===month).reduce((s,b)=>s+b.total,0),avg=day.length?rev/day.length:0,disc=day.reduce((s,b)=>s+(b.subtotal-b.total),0);let cash=0,qr=0,card=0;S.payments.filter(p=>dayKey(p.time)===today()).forEach(p=>{if(p.method==='Tiền mặt')cash+=p.amount;else if(p.method==='QR/Chuyển khoản')qr+=p.amount;else if(p.method==='Thẻ')card+=p.amount;else{cash+=p.parts.cash||0;qr+=p.parts.qr||0}});$('dashStats').innerHTML=stats([['Doanh thu hôm nay',money(rev)],['Doanh thu tháng',money(mrev)],['Số bill',day.length],['Bill TB',money(avg)],['Tiền mặt',money(cash)],['QR',money(qr)],['Thẻ',money(card)],['Giảm giá',money(disc)],['Hủy món',S.risks.filter(x=>x.action==='HỦY MÓN').length]]);let counts={};bills.forEach(b=>b.items.forEach(i=>counts[i.name]=(counts[i.name]||0)+i.qty));$('topItems').innerHTML='<h3>Top món</h3>'+Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,10).map(x=>'<div class=log>'+x[0]+' <b>'+x[1]+'</b></div>').join('')}
 function exportData(){let blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='MAY_POS_BACKUP_'+today()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
@@ -109,29 +119,103 @@ async function loadMenuMapped(){const d=await loadMenuFromSupabase();if(d)S.menu
 async function fetchAll(make){let all=[],from=0;for(;;){const{data,error}=await make().range(from,from+999);if(error)return{error};all=all.concat(data||[]);if(!data||data.length<1000)return{data:all};from+=1000}}
 
 // Gửi trạng thái bàn lên server theo thứ tự: mỗi bàn chỉ 1 lệnh đang chạy, lệnh sau luôn mang trạng thái mới nhất
-const pushing={},pushDirty={},unsynced={};
+const pushing={},pushDirty={},lastSrv={};
+// ---------- 3.1d: HÀNG CHỜ MÓN CHƯA ĐỒNG BỘ (outbox) ----------
+// Chỉ giữ TẠM trên máy những món đã gọi nhưng máy chủ CHƯA xác nhận lưu. Dữ liệu chính vẫn là Supabase.
+// Mỗi lần gọi món có mã riêng (op id); máy chủ ghi mã vào meta.ops của bàn cùng lúc với món,
+// nên gửi lại bao nhiêu lần cũng chỉ ghi một lần. Chỉ xóa khỏi hàng chờ khi đọc lại máy chủ thấy mã đã có.
+const OBX_KEY='MAY_POS_OUTBOX';
+let OBX=(()=>{try{const o=JSON.parse(localStorage.getItem(OBX_KEY)||'{}');return o&&typeof o==='object'&&!Array.isArray(o)?o:{}}catch(e){return{}}})();
+let obxWarned=false;const OBX_GONE=new Set();   // mã món máy chủ đã xác nhận / nhân viên đã bỏ (để không bị tab khác ghi lại)
+const obxDisk=()=>{try{const o=JSON.parse(localStorage.getItem(OBX_KEY)||'{}');return o&&typeof o==='object'&&!Array.isArray(o)?o:{}}catch(e){return{}}};
+// Gộp với bản trên máy (nếu mở POS ở nhiều tab cùng máy): không tab nào xóa mất món tab kia vừa gọi
+function obxMerge(){const d=obxDisk();for(const t of Object.keys(d)){const dt=d[t];if(!dt||!dt.ops)continue;const m=OBX[t];
+    if(!m||!m.ops||!m.ops.length){const ops=dt.ops.filter(x=>!OBX_GONE.has(x.id));if(ops.length)OBX[t]=Object.assign({},dt,{ops});continue}
+    dt.ops.forEach(x=>{if(!OBX_GONE.has(x.id)&&!m.ops.some(y=>y.id===x.id))m.ops.push(x)})}}
+function saveObx(){obxMerge();for(const k of Object.keys(OBX)){if(OBX[k]&&OBX[k].ops)OBX[k].ops=OBX[k].ops.filter(x=>!OBX_GONE.has(x.id));if(!OBX[k]||!OBX[k].ops||!OBX[k].ops.length)delete OBX[k]}
+  try{localStorage.setItem(OBX_KEY,JSON.stringify(OBX));return true}catch(e){if(!obxWarned){obxWarned=true;alert('Trình duyệt không cho lưu tạm món trên máy này. Nếu mất mạng, KHÔNG tải lại trang cho đến khi món được đồng bộ.')}return false}}
+const obx=t=>{const o=OBX[t];return o&&o.ops&&o.ops.length?o:null};
+const obxQty=o=>o.ops.reduce((s,x)=>s+x.qty,0);
+const obxCount=()=>Object.values(OBX).reduce((n,o)=>n+(o&&o.ops?obxQty(o):0),0);
+const itemKey=x=>x.id+'|'+x.price+'|'+(x.note||'');
+const isNetErr=e=>!(e&&e.code)&&/fetch|network|failed|timeout|load failed|abort/i.test(String((e&&e.message)||e||''));
+function obxBlock(t,what){t=Number(t);const o=obx(t);if(!o)return false;syncTable(t);
+  alert('Bàn '+t+' còn '+obxQty(o)+' món CHƯA ĐỒNG BỘ với máy chủ'+(o.state==='conflict'?' và đang XUNG ĐỘT (xử lý ở màn hình Bán hàng)':o.state==='error'?' (máy chủ từ chối – xem ở màn hình Bán hàng)':'')+'.\nChưa thể '+what+'. Chờ đồng bộ xong rồi thử lại.');return true}
+// Trước thao tác cần dữ liệu máy chủ (gửi Bếp/Bar, thanh toán, in tạm tính…): thử đồng bộ ngay; chỉ chặn nếu vẫn còn món chưa đồng bộ
+async function obxReady(t,what){t=Number(t);const o=obx(t);if(!o)return true;if(o.state==='pending')await syncTable(t);if(!obx(t))return true;obxBlock(t,what);return false}
+function obxAdd(t,item){let o=OBX[t];if(!o||!o.ops||!o.ops.length)o=OBX[t]={base:serverRev[t]??null,ops:[],state:'pending',sentRev:null};
+  const op=o.ops.find(x=>!x.tried&&itemKey(x.item)===itemKey(item));if(op)op.qty++;else o.ops.push({id:uid(),item,qty:1,tried:false,at:Date.now(),by:who()});
+  saveObx()}
+const syncing={};
+function syncTable(t){t=Number(t);if(!t||!obx(t))return Promise.resolve('ok');if(syncing[t])return syncing[t];
+  syncing[t]=(async()=>{let r='offline';try{r=await syncTableNow(t);return r}catch(e){console.error('Đồng bộ món',e);return 'offline'}finally{delete syncing[t];setLiveBadge();if(r==='ok'&&obx(t)&&OBX[t].state==='pending')setTimeout(()=>syncTable(t),30)}})();return syncing[t]}
+async function syncTableNow(t){
+  if(pushing[t])await pushing[t].catch(()=>{});
+  for(let loop=0;loop<6;loop++){
+    obxMerge();const o=obx(t);if(!o){saveObx();return 'ok'}
+    const{data,error}=await sb.from('pos_table_orders').select('*').eq('table_no',t);
+    if(error){o.lastErr=String(error.message||'');saveObx();renderSale();return 'offline'}
+    const R=(data&&data[0])||null,rowRev=R?Number(R.rev):null,applied=new Set(((R&&R.meta&&R.meta.ops)||[]).map(String));
+    o.ops.forEach(x=>{if(applied.has(String(x.id)))OBX_GONE.add(x.id)});o.ops=o.ops.filter(x=>!applied.has(String(x.id)));          // máy chủ đã xác nhận → bỏ khỏi hàng chờ
+    if(R)applyTableRow(R,true);
+    if(!o.ops.length){delete OBX[t];saveObx();render();return 'ok'}
+    if(o.sentRev!=null&&rowRev===Number(o.sentRev))o.base=rowRev; // lần ghi gần nhất của chính máy này là bản mới nhất
+    if(o.state==='conflict'||o.state==='error'){saveObx();renderSale();return o.state}
+    if(rowRev!==(o.base==null?null:Number(o.base))){             // máy khác đã đổi bàn → KHÔNG tự ghi, giữ nguyên hàng chờ
+      o.state='conflict';o.srv=R?(R.items||[]).map(x=>x.qty+'× '+x.name).join(', '):'';saveObx();renderSale();
+      toast('⚠️ Bàn '+t+': xung đột – cần xử lý món chưa đồng bộ');return 'conflict'}
+    const items=JSON.parse(JSON.stringify((R&&R.items)||[]));
+    o.ops.forEach(op=>{const it=op.item,x=items.find(q=>itemKey(q)===itemKey(it));if(x)x.qty+=op.qty;else items.push({id:it.id,name:it.name,price:it.price,station:it.station,unit:it.unit||'',qty:op.qty,sent:0,note:it.note||''})});
+    const meta=Object.assign({},(R&&R.meta)||{});meta.ops=[...((meta.ops)||[]),...o.ops.map(x=>x.id)].slice(-300);
+    const rev=Math.max(Date.now(),(rowRev||0)+1);
+    o.ops.forEach(x=>x.tried=true);o.sentRev=rev;saveObx();       // ghi nhận "đã gửi đi" TRƯỚC khi gửi
+    tableRev[t]=Math.max(tableRev[t]||0,rev);
+    const w=await sb.from('pos_table_orders').upsert({table_no:t,items,status:(R&&R.status)||'busy',discount:R?Number(R.discount)||0:0,meta,rev,base_rev:rowRev,client_id:CLIENT,updated_by:who(),updated_at:new Date().toISOString()}).select('rev');
+    if(w.error){const m=String(w.error.message||'');
+      if(/POS_CONFLICT/.test(m))continue;                         // đọc lại: nếu là máy khác → báo xung đột
+      if(isNetErr(w.error)){o.lastErr=m;saveObx();renderSale();return 'offline'}
+      o.state='error';o.msg=m;saveObx();renderSale();return 'error'}
+    // ghi xong → vòng sau đọc lại máy chủ để xác nhận rồi mới xóa khỏi hàng chờ
+  }
+  return 'retry'}
+async function syncAllObx(){if(!S.user)return;for(const t of Object.keys(OBX))if(obx(t)&&OBX[t].state==='pending')await syncTable(t)}
+async function obxApplyLatest(t){const o=obx(t);if(!o)return;
+  if(!confirm('Thêm '+obxQty(o)+' món chưa đồng bộ vào Bàn '+t+' theo dữ liệu MỚI NHẤT trên máy chủ?\n(Món của máy khác được giữ nguyên.)'))return;
+  const{data,error}=await sb.from('pos_table_orders').select('rev,meta').eq('table_no',t);if(error)return alert('Chưa kết nối được máy chủ. Thử lại khi có mạng.');
+  const R=data&&data[0];o.base=R?Number(R.rev):null;o.state='pending';o.msg='';o.srv='';saveObx();log('XỬ LÝ XUNG ĐỘT','Bàn '+t+': thêm '+obxQty(o)+' món chưa đồng bộ vào bản mới nhất',true);await syncTable(t);render()}
+async function obxDrop(t){const o=obx(t);if(!o)return;
+  const{data,error}=await sb.from('pos_table_orders').select('meta').eq('table_no',t);if(error)return alert('Cần có mạng để kiểm tra máy chủ trước khi bỏ món.');
+  const applied=new Set((((data&&data[0])||{}).meta||{}).ops?.map(String)||[]);o.ops.forEach(x=>{if(applied.has(String(x.id)))OBX_GONE.add(x.id)});o.ops=o.ops.filter(x=>!applied.has(String(x.id)));
+  if(!o.ops.length){saveObx();render();return alert('Các món này đã có trên máy chủ.')}
+  if(!confirm('BỎ '+obxQty(o)+' món chưa đồng bộ của Bàn '+t+'?\n'+o.ops.map(x=>x.qty+'× '+x.item.name).join(', ')+'\nCác món này CHƯA có trên máy chủ.'))return;
+  log('BỎ MÓN CHƯA ĐỒNG BỘ','Bàn '+t+': '+o.ops.map(x=>x.qty+'× '+x.item.name).join(', '),true);o.ops.forEach(x=>OBX_GONE.add(x.id));delete OBX[t];saveObx();render()}
+function obxMinus(t,id){const o=obx(t);if(!o)return;const op=o.ops.find(x=>x.id===id);if(!op)return;
+  if(op.tried)return alert('Món này đã được gửi lên máy chủ và đang chờ xác nhận – chưa bớt được. Chờ đồng bộ xong rồi bớt như bình thường.');
+  op.qty--;if(op.qty<=0){OBX_GONE.add(op.id);o.ops.splice(o.ops.indexOf(op),1)}saveObx();renderSale()}
+window.addEventListener('storage',e=>{if(e.key===OBX_KEY){obxMerge();if(S.user){renderSale();setLiveBadge()}else obxLoginNote()}});
 function pushTable(t){t=Number(t);if(!t)return Promise.resolve();if(pushing[t]){pushDirty[t]=true;return pushing[t]}
   pushing[t]=(async()=>{try{do{pushDirty[t]=false;await pushTableNow(t)}while(pushDirty[t])}finally{delete pushing[t]}})();return pushing[t]}
 // serverRev: phiên bản bàn mới nhất máy này đã nhận từ máy chủ (máy chủ từ chối nếu máy khác đã sửa sau đó)
 const serverRev={};
 async function pushTableNow(t){const rev=Math.max(Date.now(),(tableRev[t]||0)+1,(serverRev[t]||0)+1);tableRev[t]=rev;
   const{data,error}=await sb.from('pos_table_orders').upsert({table_no:t,items:S.orders[t]||[],status:S.tableStatus[t]||'',discount:S.discounts[t]||0,meta:S.meta[t]||{},rev,base_rev:serverRev[t]??null,client_id:CLIENT,updated_by:who(),updated_at:new Date().toISOString()}).select('rev');
-  if(error){if(/POS_CONFLICT/.test(error.message)){delete unsynced[t];return reloadTable(t,true)}syncFail('bàn '+t,error);if(/giá|quyền|gửi/i.test(error.message)){delete unsynced[t];alert(error.message);return reloadTable(t,false)}unsynced[t]=true;return}
-  delete unsynced[t];const r=data&&data[0];if(r){serverRev[t]=Math.max(serverRev[t]||0,Number(r.rev));tableRev[t]=Math.max(tableRev[t]||0,Number(r.rev))}}
+  if(error){if(/POS_CONFLICT/.test(error.message))return reloadTable(t,true);syncFail('bàn '+t,error);if(/giá|quyền|gửi/i.test(error.message)){alert(error.message);return reloadTable(t,false)}
+    revertTable(t);alert('Mất kết nối – thay đổi ở Bàn '+t+' CHƯA được máy chủ xác nhận nên đã hoàn lại theo dữ liệu máy chủ. Kiểm tra mạng rồi thao tác lại.');return}
+  const r=data&&data[0];if(r){const sent=serverRev[t]??null,o=obx(t);if(o&&o.state==='pending'&&(o.base==null?null:Number(o.base))===(sent==null?null:Number(sent))){o.base=Number(r.rev);saveObx()}serverRev[t]=Math.max(serverRev[t]||0,Number(r.rev));tableRev[t]=Math.max(tableRev[t]||0,Number(r.rev))}}
 // Tải lại một bàn từ máy chủ (khi bị máy khác cập nhật trước, hoặc sau khi thanh toán / gửi bếp)
 async function reloadTable(t,conflict){t=Number(t);const before=conflict?JSON.parse(JSON.stringify(S.orders[t]||[])):null;const{data,error}=await sb.from('pos_table_orders').select('*').eq('table_no',t);
   if(error)return syncFail('bàn '+t,error);const r=data&&data[0];
-  delete unsynced[t];if(r)applyTableRow(r,true);else{S.orders[t]=[];S.meta[t]={};delete S.discounts[t];delete S.tableStatus[t]}
+  if(r)applyTableRow(r,true);else{S.orders[t]=[];S.meta[t]={};delete S.discounts[t];delete S.tableStatus[t]}
   save();render();if(conflict){const key=x=>x.id+'|'+x.price+'|'+(x.note||''),now={};(S.orders[t]||[]).forEach(x=>now[key(x)]=(now[key(x)]||0)+x.qty);const lost=[];before.forEach(x=>{const k=key(x),d=x.qty-(now[k]||0);if(d>0){lost.push(d+'× '+x.name+(x.note?' ('+x.note+')':''));now[k]=0}else now[k]-=x.qty});
     alert('Bàn '+t+' vừa được cập nhật ở máy khác. Đã tải lại dữ liệu mới nhất – vui lòng kiểm tra và thao tác lại.'+(lost.length?'\nMón trên máy này CHƯA được lưu, cần gọi lại: '+lost.join(', '):''))}}
 function applyTableRow(r,force){const t=Number(r.table_no);if(!t)return false;
-  if(!force&&unsynced[t])return false; // bàn có thay đổi chưa lưu được (mất mạng) → giữ lại, sẽ gửi lại khi có mạng
   if(!force&&r.client_id===CLIENT&&Number(r.rev)<(tableRev[t]||0))return false; // bản cũ của chính máy này → bỏ qua
-  serverRev[t]=Math.max(force?0:(serverRev[t]||0),Number(r.rev)||0);
+  serverRev[t]=Math.max(force?0:(serverRev[t]||0),Number(r.rev)||0);lastSrv[t]=JSON.parse(JSON.stringify(r));
   S.orders[t]=Array.isArray(r.items)?r.items:[];S.meta[t]=r.meta||{};
   if(r.status)S.tableStatus[t]=r.status;else delete S.tableStatus[t];
   if(Number(r.discount))S.discounts[t]=Number(r.discount);else delete S.discounts[t];
   return true}
+function revertTable(t){const r=lastSrv[t];if(r)applyTableRow(r,true);else{S.orders[t]=[];S.meta[t]={};delete S.discounts[t];delete S.tableStatus[t]}render()}
 const TFLOW=['MỚI','ĐANG LÀM','HOÀN THÀNH','ĐÃ PHỤC VỤ'];
 function applyTicketRow(r){const old=S.tickets.find(x=>String(x.id)===String(r.id));if(old&&TFLOW.indexOf(r.status)<TFLOW.indexOf(old.status))return; // tín hiệu cũ đến muộn → không lùi trạng thái
   const t={id:r.id,table:Number(r.table_no),itemId:r.item_id,item:r.item,qty:r.qty,note:r.note||'',station:r.station,status:r.status,created:msOf(r.created_at),done:msOf(r.done_at),served:msOf(r.served_at),by:r.created_by,batch:r.batch_id,round:r.round,printed:+r.print_count||0};
@@ -156,7 +240,7 @@ async function loadLive(){
   save();return true}
 
 function beep(){try{const c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.frequency.value=880;g.gain.value=.15;o.connect(g);g.connect(c.destination);o.start();setTimeout(()=>{o.stop();c.close()},250)}catch(e){}}
-function setLiveBadge(){const e=$('liveDot');if(e){e.textContent=liveOK?'● Trực tuyến':'○ Đang kết nối';e.className=liveOK?'live on':'live'}}
+function setLiveBadge(){const e=$('liveDot');if(e){const p=obxCount();e.textContent=(liveOK?'● Trực tuyến':'○ Đang kết nối')+(p?' · ⏳ '+p+' món chưa đồng bộ':'');e.className=liveOK&&!p?'live on':'live'}}
 function startLive(){stopLive();
   liveChannel=sb.channel('pos-live-'+CLIENT.slice(0,8))
    .on('postgres_changes',{event:'*',schema:'public',table:'pos_table_orders'},p=>{if(p.new&&applyTableRow(p.new)){save();renderSale();renderOverview()}})
@@ -174,10 +258,10 @@ function startLive(){stopLive();
    .on('postgres_changes',{event:'*',schema:'public',table:'menu_items'},async()=>{if(await loadMenuMapped()){save();renderSale();renderMenuAdmin();renderRecipes()}})
    .subscribe(s=>{liveOK=s==='SUBSCRIBED';console.log('Realtime:',s);setLiveBadge();if(liveOK){if(liveDown)resync();liveDown=false}else liveDown=true});
   // Dự phòng: nếu mất kết nối tức thời thì 15 giây tải lại 1 lần
-  pollTimer=setInterval(async()=>{if(liveOK||!S.user)return;await resync()},15000)}
+  pollTimer=setInterval(async()=>{if(!S.user)return;if(!liveOK)return resync();if(Object.keys(OBX).length)syncAllObx()},8000);setTimeout(syncAllObx,500)}
 let liveDown=false,resyncing=null;
 // Đồng bộ lại sau khi mất mạng: lưu các bàn chưa lưu được → tải lại dữ liệu mới nhất từ máy chủ
-function resync(){if(resyncing)return resyncing;resyncing=(async()=>{try{for(const t of Object.keys(unsynced))await pushTable(t);if(await loadLive())render()}finally{resyncing=null}})();return resyncing}
+function resync(){if(resyncing)return resyncing;resyncing=(async()=>{try{if(await loadLive())render();await syncAllObx()}finally{resyncing=null}})();return resyncing}
 window.addEventListener('online',()=>{if(S.user)resync()});
 function stopLive(){if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null}liveOK=false;if(pollTimer){clearInterval(pollTimer);pollTimer=null}}
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&S.user){if(await loadLive())render()}});
@@ -472,7 +556,7 @@ function renderAudit(){if(!$('auditLog'))return;const qy=($('auditSearch')?.valu
   $('auditLog').innerHTML=list.length?list.map(x=>'<div class=log>'+(x.risk?'⚠️ ':'')+'<b>'+esc(x.action)+'</b> · '+esc(x.time)+' · '+esc(x.user)+(x.role?' ('+esc(ROLE_NAMES[x.role]||x.role)+')':'')+(x.device?' · 🖥 '+esc(x.device):'')+(x.pending?' <em class=muted>(đang gửi)</em>':'')+'<br>'+esc(x.detail)+'</div>').join(''):'<div class=empty>Chưa có nhật ký.</div>'}
 
 // ---------- Hủy món: ghi hao hụt theo công thức ----------
-function voidItem(){if(!has('order')&&!has('void_sent'))return alert('Không có quyền.');let a=S.orders[S.table]||[];if(!a.length)return alert('Không có món.');
+function voidItem(){if(!has('order')&&!has('void_sent'))return alert('Không có quyền.');if(S.table&&obxBlock(S.table,'hủy món'))return;let a=S.orders[S.table]||[];if(!a.length)return alert('Không có món.');
   let i=Number(prompt(a.map((x,i)=>(i+1)+'. '+x.name+' × '+x.qty).join('\n')+'\nNhập số thứ tự món:'))-1;if(i<0||i>=a.length)return;
   let x=a[i],cooked=Math.min(x.sent||0,x.qty);if(cooked>0&&!has('void_sent'))return alert('Món đã gửi Bếp/Bar – cần Quản lý/OWNER hủy.');let why=prompt('Lý do hủy (bắt buộc):');if(!why)return alert('Bắt buộc có lý do.');
   if(cooked>0&&Number(x.id))sb.rpc('pos_waste_item',{p_menu_item:Number(x.id),p_qty:cooked,p_note:'Hủy món bàn '+S.table+': '+why}).then(({error})=>{if(error)console.error('Lỗi ghi hao hụt:',error)});
@@ -581,7 +665,7 @@ function billHTML(b,o){const st=storeInfo(),temp=o&&o.temp;
   '<hr><div class=bl-c>'+esc(st.footer)+'</div></div>'}
 async function printBill(b){const{data,error}=await sb.rpc('pos_bill_printed',{p_bill:b.uid});if(error)return alert('Không ghi nhận được lần in: '+error.message);
   b.printCount=+data||1;printHTML(billHTML(b,{count:b.printCount}))}
-function printTempBill(){if(!S.table)return alert('Chọn bàn.');const a=S.orders[S.table]||[];if(!a.length)return alert('Bàn chưa có món.');const t=total();
+function printTempBill(){if(!S.table)return alert('Chọn bàn.');if(obx(S.table)){obxReady(S.table,'in tạm tính').then(ok=>{if(ok)printTempBill()});return}const a=S.orders[S.table]||[];if(!a.length)return alert('Bàn chưa có món.');const t=total();
   printHTML(billHTML({table:S.table,items:a,subtotal:t.sub,discount:t.d,total:t.total,user:who(),time:Date.now()},{temp:true}));
   log('IN TẠM TÍNH','Bàn '+S.table+' · '+money(t.total)+' · '+a.reduce((n,x)=>n+x.qty,0)+' món')}
 function paidModal(b){modal('<h2>✓ Thanh toán thành công</h2><div class=notice>Hóa đơn #'+esc(b.id)+' · Bàn '+pad(b.table)+'</div><div class=total>'+money(b.total)+'</div>'+(b.cashGiven?'<p>Khách đưa: <b>'+money(b.cashGiven)+'</b><br>Trả lại khách: <b class=up style="font-size:22px">'+money(b.change||0)+'</b></p>':'')+'<button id=pmPrint class="primary wide">IN HÓA ĐƠN</button><button id=pmClose class=wide style="margin-top:7px">ĐÓNG</button>');
@@ -716,6 +800,7 @@ async function loadUser(user) {
     .eq('auth_user_id', user.id)
     .single();
  
+  if (error && isNetErr(error)) { $('loginError').textContent = 'Mất mạng – chưa tải được tài khoản. Hệ thống sẽ tự thử lại khi có mạng.'; return; }
   if (error || !data || !data.active || !roles[data.role_code]) {
     await sb.auth.signOut();
     $('loginError').textContent =
@@ -745,7 +830,17 @@ async function logout() {
   $('loginPin').value = '';
   $('loginError').textContent = '';
   $('nav').innerHTML = '';
+  obxLoginNote();
 }
+// 3.1d: màn hình đăng nhập luôn cho thấy món chưa đồng bộ còn giữ trên máy
+function obxLoginNote(){const box=document.querySelector('#login .dialog');if(!box)return;let e=$('obxLogin');const p=obxCount();if(!p){if(e)e.remove();return}
+  if(!e){e=document.createElement('div');e.id='obxLogin';e.style.cssText='border:2px solid #e48b0b;background:#fff7e8;color:#172019;padding:8px;margin:8px 0;border-radius:8px;text-align:left';box.appendChild(e)}
+  e.innerHTML='<b>⏳ Máy này còn '+p+' món CHƯA ĐỒNG BỘ</b><br><small>'+Object.keys(OBX).filter(t=>obx(t)).map(t=>'Bàn '+t+': '+OBX[t].ops.map(x=>x.qty+'× '+esc(x.item.name)).join(', ')).join('<br>')+'</small><br><small>Món vẫn được giữ an toàn trên máy này. Khi có mạng và đăng nhập, hệ thống tự gửi lên máy chủ.</small>'}
+let resumeTimer=null;
+async function tryResume(){if(S.user)return;const{data:sd}=await sb.auth.getSession();if(!sd||!sd.session)return;
+  const{data,error}=await sb.auth.getUser();if(data&&data.user){clearInterval(resumeTimer);resumeTimer=null;$('loginError').textContent='';return loadUser(data.user)}
+  if(error&&isNetErr(error)){$('loginError').textContent='Mất mạng – chưa kết nối được máy chủ. Hệ thống sẽ tự vào lại khi có mạng.';if(!resumeTimer)resumeTimer=setInterval(tryResume,10000)}}
+window.addEventListener('online',()=>{if(!S.user)tryResume()});
  
 $('loginBtn').onclick = login;
 $('loginPin').addEventListener('keydown', e => {
@@ -774,10 +869,11 @@ Object.assign(actions,{exportReport,postCash,addResv,printTemp:printTempBill,add
 Object.entries(actions).forEach(([id, fn]) => { const el = $(id); if (el) el.onclick = fn; });
  
 (async function init() {
+  obxLoginNote();
   const { data } = await sb.auth.getUser();
   if (data.user) {
     await loadUser(data.user);
-  }
+  } else tryResume();
 })();
 })();
  
