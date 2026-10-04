@@ -136,6 +136,11 @@ begin
   if not (public.pos_has('order') or public.pos_has('pay') or public.pos_has('move_table')) then
     raise exception 'Không có quyền gọi món';
   end if;
+  -- Lệnh upsert (insert ... on conflict do update): pha INSERT chạy trước khi biết trùng khóa.
+  -- Nếu bàn đã có dòng, bỏ qua kiểm tra ở pha này; pha UPDATE ngay sau đó kiểm tra đầy đủ.
+  if tg_op = 'INSERT' and exists (select 1 from public.pos_table_orders where table_no = new.table_no) then
+    return new;
+  end if;
   if tg_op = 'UPDATE' then
     -- bản ghi cũ đến muộn từ cùng một máy → bỏ qua
     if new.client_id is not distinct from old.client_id and coalesce(new.rev, 0) < coalesce(old.rev, 0) then return null; end if;
@@ -243,10 +248,8 @@ begin
     select coalesce(sum((i->>'price')::numeric * (i->>'qty')::numeric), 0) into v_sub
       from jsonb_array_elements(new.items) i;
     if abs(v_sub - coalesce(new.subtotal, 0)) > 1 then raise exception 'Tạm tính không khớp danh sách món'; end if;
-    v_max := coalesce((public.pos_my_perms() ->> 'discount_max')::numeric, 0);
-    if coalesce(new.discount, 0) < 0 or coalesce(new.discount, 0) > v_max then
-      raise exception 'Vượt quyền giảm giá (tối đa % phần trăm)', v_max;
-    end if;
+    -- Giảm giá đã được kiểm tra quyền khi người có quyền áp vào đơn bàn; ở đây chỉ cần khớp đơn bàn
+    if coalesce(new.discount, 0) < 0 or coalesce(new.discount, 0) > 100 then raise exception 'Giảm giá không hợp lệ'; end if;
     if abs(round(v_sub * (1 - coalesce(new.discount, 0) / 100)) - round(coalesce(new.total, 0))) > 1 then
       raise exception 'Tổng tiền không khớp tạm tính và giảm giá';
     end if;
