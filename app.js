@@ -63,7 +63,7 @@ function noteItem(id){let x=(S.orders[S.table]||[]).find(q=>String(q.id)===Strin
 async function sendOrder(){if(!has('order'))return alert('Không có quyền gửi Bếp/Bar.');if(!S.table)return alert('Chọn bàn.');const table=S.table;
   if(!(S.orders[table]||[]).some(x=>x.qty>(x.sent||0)))return alert('Không có món mới để gửi.');
   const btn=$('send');if(btn)btn.disabled=true;
-  try{if(pushing[table])await pushing[table];              // đảm bảo máy chủ đã có đơn mới nhất
+  try{if(unsynced[table])await pushTable(table);if(pushing[table])await pushing[table];if(unsynced[table])return alert('Chưa lưu được Bàn '+table+' lên hệ thống (mất mạng?). Kiểm tra kết nối rồi bấm GỬI lại.');              // đảm bảo máy chủ đã có đơn mới nhất
     const batch=uid();const{data,error}=await sb.rpc('pos_send_order',{p_table:table,p_batch:batch});
     if(error){if(/POS_CONFLICT/.test(error.message))return reloadTable(table,true);syncFail('gửi Bếp/Bar',error);return alert('Chưa gửi được Bếp/Bar: '+error.message)}
     await reloadTable(table,false);
@@ -76,7 +76,7 @@ function advanceTicket(id){let t=S.tickets.find(x=>String(x.id)===String(id)),fl
 function doDiscount(){if(!S.table)return alert('Chọn bàn.');let max=roles[S.user].disc||0;if(!max)return alert('Không có quyền giảm giá.');let d=Number(prompt('Nhập % giảm. Tối đa '+max+'%'));if(!d)return;if(d>max){log('TỪ CHỐI GIẢM GIÁ','Yêu cầu '+d+'%',true);return alert('Vượt quyền.')}S.discounts[S.table]=d;log('GIẢM GIÁ','Bàn '+S.table+': '+d+'%',true);pushTable(S.table);renderSale()}
 function markWaiting(){if(!has('order')&&!has('pay'))return alert('Không có quyền.');if(!S.table)return alert('Chọn bàn.');S.tableStatus[S.table]='waiting';log('CHỜ THANH TOÁN','Bàn '+S.table);pushTable(S.table);renderSale()}
 function pay(){if(!roles[S.user].pay)return alert('Không có quyền thanh toán.');let t=total();if(!S.table||!t.total)return alert('Không có hóa đơn.');modal('<h2>Thanh toán · Bàn '+S.table+'</h2><p>Tạm tính: <b>'+money(t.sub)+'</b><br>Giảm: <b>'+t.d+'%</b></p><div class=total>'+money(t.total)+'</div><select id=pm><option>Tiền mặt</option><option>QR/Chuyển khoản</option><option>Thẻ</option><option>Kết hợp</option></select><input id=guests type=number min=0 placeholder="Số khách"><input id=cashGiven type=number placeholder="Khách đưa (tiền mặt)"><input id=splitCash type=number placeholder="Nếu kết hợp: tiền mặt"><input id=splitQR type=number placeholder="Nếu kết hợp: QR"><button id=confirmPay class="primary wide">XÁC NHẬN</button><button id=printBill class="wide">IN TẠM TÍNH</button>');$('confirmPay').onclick=confirmPay;$('printBill').onclick=printTempBill}
-async function confirmPay(){let t=total(),m=$('pm').value;if(m.includes('QR')&&S.bank==='Chưa cấu hình')return alert('OWNER chưa cấu hình tài khoản nhận tiền.');let parts={};if(m==='Kết hợp'){parts.cash=+$('splitCash').value||0;parts.qr=+$('splitQR').value||0;if(Math.abs(parts.cash+parts.qr-t.total)>1)return alert('Tổng tiền kết hợp chưa bằng số phải thanh toán.')}else parts[m]=t.total;let given=+$('cashGiven').value||0;if(m==='Tiền mặt'&&given&&given<t.total)return alert('Tiền khách đưa chưa đủ.');const btn=$('confirmPay');btn.disabled=true;btn.textContent='ĐANG LƯU...';if(pushing[S.table])await pushing[S.table];const table=S.table,items=JSON.parse(JSON.stringify(S.orders[table]||[]));const cashPart=m==='Tiền mặt'?t.total:m==='Kết hợp'?(+parts.cash||0):0,cashGiven=cashPart&&given>=cashPart?given:null,change=cashGiven?Math.round(cashGiven-cashPart):null;
+async function confirmPay(){let t=total(),m=$('pm').value;if(m.includes('QR')&&S.bank==='Chưa cấu hình')return alert('OWNER chưa cấu hình tài khoản nhận tiền.');let parts={};if(m==='Kết hợp'){parts.cash=+$('splitCash').value||0;parts.qr=+$('splitQR').value||0;if(Math.abs(parts.cash+parts.qr-t.total)>1)return alert('Tổng tiền kết hợp chưa bằng số phải thanh toán.')}else parts[m]=t.total;let given=+$('cashGiven').value||0;if(m==='Tiền mặt'&&given&&given<t.total)return alert('Tiền khách đưa chưa đủ.');const btn=$('confirmPay');btn.disabled=true;btn.textContent='ĐANG LƯU...';if(unsynced[S.table])await pushTable(S.table);if(pushing[S.table])await pushing[S.table];if(unsynced[S.table]){btn.disabled=false;btn.textContent='XÁC NHẬN';return alert('Chưa lưu được Bàn '+S.table+' lên hệ thống (mất mạng?). Kiểm tra kết nối rồi bấm XÁC NHẬN lại.')}const table=S.table,items=JSON.parse(JSON.stringify(S.orders[table]||[]));const cashPart=m==='Tiền mặt'?t.total:m==='Kết hợp'?(+parts.cash||0):0,cashGiven=cashPart&&given>=cashPart?given:null,change=cashGiven?Math.round(cashGiven-cashPart):null;
   const{data,error}=await sb.from('pos_bills').insert({id:uid(),table_no:table,items,subtotal:t.sub,discount:t.d,total:t.total,method:m,parts,guests:+$('guests').value||0,created_by:who(),cash_given:cashGiven,change_amount:change}).select().single();if(error){btn.disabled=false;btn.textContent='XÁC NHẬN';if(/POS_PAID|POS_CONFLICT/.test(error.message)){closeModal();await reloadTable(table,false);return alert(error.message.replace(/^.*?POS_(PAID|CONFLICT): */,''))}syncFail('hóa đơn',error);return alert('Chưa lưu được hóa đơn lên hệ thống. Kiểm tra mạng rồi bấm XÁC NHẬN lại.\n('+error.message+')')}applyBillRow(data);S.bills.sort(byTime);rebuildPayments();S.orders[table]=[];S.meta[table]={};delete S.discounts[table];delete S.tableStatus[table];reloadTable(table,false);closeModal();render();toast('✓ Thanh toán thành công'+(change?' · Trả lại '+money(change):''));paidModal(S.bills.find(x=>x.uid===data.id))}
 function moveTable(){if(!has('move_table'))return alert('Không có quyền chuyển bàn.');if(!S.table)return alert('Chọn bàn nguồn.');let to=Number(prompt('Chuyển Bàn '+S.table+' sang bàn số:'));if(!to||to<1||to>20||to===S.table)return;if((S.orders[to]||[]).length)return alert('Bàn đích đang có order.');S.orders[to]=S.orders[S.table]||[];S.orders[S.table]=[];S.tableStatus[to]=S.tableStatus[S.table];delete S.tableStatus[S.table];log('CHUYỂN BÀN','Bàn '+S.table+' → '+to);pushTable(S.table);pushTable(to);S.table=to;render()}
 function mergeTable(){if(!has('move_table'))return alert('Không có quyền gộp bàn.');if(!S.table)return alert('Chọn bàn đích.');let from=Number(prompt('Gộp bàn số nào vào Bàn '+S.table+'?'));if(!from||from===S.table)return;let a=S.orders[from]||[];if(!a.length)return alert('Bàn nguồn trống.');let dest=S.orders[S.table]??=[];a.forEach(x=>{let d=dest.find(y=>y.id===x.id&&y.note===x.note);d?d.qty+=x.qty:dest.push(x)});S.orders[from]=[];delete S.tableStatus[from];log('GỘP BÀN','Bàn '+from+' → '+S.table);pushTable(from);pushTable(S.table);render()}
@@ -109,21 +109,23 @@ async function loadMenuMapped(){const d=await loadMenuFromSupabase();if(d)S.menu
 async function fetchAll(make){let all=[],from=0;for(;;){const{data,error}=await make().range(from,from+999);if(error)return{error};all=all.concat(data||[]);if(!data||data.length<1000)return{data:all};from+=1000}}
 
 // Gửi trạng thái bàn lên server theo thứ tự: mỗi bàn chỉ 1 lệnh đang chạy, lệnh sau luôn mang trạng thái mới nhất
-const pushing={},pushDirty={};
+const pushing={},pushDirty={},unsynced={};
 function pushTable(t){t=Number(t);if(!t)return Promise.resolve();if(pushing[t]){pushDirty[t]=true;return pushing[t]}
   pushing[t]=(async()=>{try{do{pushDirty[t]=false;await pushTableNow(t)}while(pushDirty[t])}finally{delete pushing[t]}})();return pushing[t]}
 // serverRev: phiên bản bàn mới nhất máy này đã nhận từ máy chủ (máy chủ từ chối nếu máy khác đã sửa sau đó)
 const serverRev={};
 async function pushTableNow(t){const rev=Math.max(Date.now(),(tableRev[t]||0)+1,(serverRev[t]||0)+1);tableRev[t]=rev;
   const{data,error}=await sb.from('pos_table_orders').upsert({table_no:t,items:S.orders[t]||[],status:S.tableStatus[t]||'',discount:S.discounts[t]||0,meta:S.meta[t]||{},rev,base_rev:serverRev[t]??null,client_id:CLIENT,updated_by:who(),updated_at:new Date().toISOString()}).select('rev');
-  if(error){if(/POS_CONFLICT/.test(error.message))return reloadTable(t,true);syncFail('bàn '+t,error);if(/giá|quyền|gửi/i.test(error.message)){alert(error.message);return reloadTable(t,false)}return}
-  const r=data&&data[0];if(r){serverRev[t]=Math.max(serverRev[t]||0,Number(r.rev));tableRev[t]=Math.max(tableRev[t]||0,Number(r.rev))}}
+  if(error){if(/POS_CONFLICT/.test(error.message)){delete unsynced[t];return reloadTable(t,true)}syncFail('bàn '+t,error);if(/giá|quyền|gửi/i.test(error.message)){delete unsynced[t];alert(error.message);return reloadTable(t,false)}unsynced[t]=true;return}
+  delete unsynced[t];const r=data&&data[0];if(r){serverRev[t]=Math.max(serverRev[t]||0,Number(r.rev));tableRev[t]=Math.max(tableRev[t]||0,Number(r.rev))}}
 // Tải lại một bàn từ máy chủ (khi bị máy khác cập nhật trước, hoặc sau khi thanh toán / gửi bếp)
-async function reloadTable(t,conflict){t=Number(t);const{data,error}=await sb.from('pos_table_orders').select('*').eq('table_no',t);
+async function reloadTable(t,conflict){t=Number(t);const before=conflict?JSON.parse(JSON.stringify(S.orders[t]||[])):null;const{data,error}=await sb.from('pos_table_orders').select('*').eq('table_no',t);
   if(error)return syncFail('bàn '+t,error);const r=data&&data[0];
-  if(r)applyTableRow(r,true);else{S.orders[t]=[];S.meta[t]={};delete S.discounts[t];delete S.tableStatus[t]}
-  save();render();if(conflict)alert('Bàn '+t+' vừa được cập nhật ở máy khác. Đã tải lại dữ liệu mới nhất – vui lòng kiểm tra và thao tác lại.')}
+  delete unsynced[t];if(r)applyTableRow(r,true);else{S.orders[t]=[];S.meta[t]={};delete S.discounts[t];delete S.tableStatus[t]}
+  save();render();if(conflict){const key=x=>x.id+'|'+x.price+'|'+(x.note||''),now={};(S.orders[t]||[]).forEach(x=>now[key(x)]=(now[key(x)]||0)+x.qty);const lost=[];before.forEach(x=>{const k=key(x),d=x.qty-(now[k]||0);if(d>0){lost.push(d+'× '+x.name+(x.note?' ('+x.note+')':''));now[k]=0}else now[k]-=x.qty});
+    alert('Bàn '+t+' vừa được cập nhật ở máy khác. Đã tải lại dữ liệu mới nhất – vui lòng kiểm tra và thao tác lại.'+(lost.length?'\nMón trên máy này CHƯA được lưu, cần gọi lại: '+lost.join(', '):''))}}
 function applyTableRow(r,force){const t=Number(r.table_no);if(!t)return false;
+  if(!force&&unsynced[t])return false; // bàn có thay đổi chưa lưu được (mất mạng) → giữ lại, sẽ gửi lại khi có mạng
   if(!force&&r.client_id===CLIENT&&Number(r.rev)<(tableRev[t]||0))return false; // bản cũ của chính máy này → bỏ qua
   serverRev[t]=Math.max(force?0:(serverRev[t]||0),Number(r.rev)||0);
   S.orders[t]=Array.isArray(r.items)?r.items:[];S.meta[t]=r.meta||{};
@@ -170,9 +172,13 @@ function startLive(){stopLive();
    .on('postgres_changes',{event:'*',schema:'public',table:'pos_settings'},()=>scheduleReload(['settings']))
    .on('postgres_changes',{event:'*',schema:'public',table:'pos_reservations'},()=>scheduleReload(['resv']))
    .on('postgres_changes',{event:'*',schema:'public',table:'menu_items'},async()=>{if(await loadMenuMapped()){save();renderSale();renderMenuAdmin();renderRecipes()}})
-   .subscribe(s=>{liveOK=s==='SUBSCRIBED';console.log('Realtime:',s);setLiveBadge()});
+   .subscribe(s=>{liveOK=s==='SUBSCRIBED';console.log('Realtime:',s);setLiveBadge();if(liveOK){if(liveDown)resync();liveDown=false}else liveDown=true});
   // Dự phòng: nếu mất kết nối tức thời thì 15 giây tải lại 1 lần
-  pollTimer=setInterval(async()=>{if(liveOK||!S.user)return;if(await loadLive())render()},15000)}
+  pollTimer=setInterval(async()=>{if(liveOK||!S.user)return;await resync()},15000)}
+let liveDown=false,resyncing=null;
+// Đồng bộ lại sau khi mất mạng: lưu các bàn chưa lưu được → tải lại dữ liệu mới nhất từ máy chủ
+function resync(){if(resyncing)return resyncing;resyncing=(async()=>{try{for(const t of Object.keys(unsynced))await pushTable(t);if(await loadLive())render()}finally{resyncing=null}})();return resyncing}
+window.addEventListener('online',()=>{if(S.user)resync()});
 function stopLive(){if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null}liveOK=false;if(pollTimer){clearInterval(pollTimer);pollTimer=null}}
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&S.user){if(await loadLive())render()}});
 setInterval(()=>{if(S.user&&$('overview')&&$('overview').classList.contains('on'))renderOverview()},60000);
