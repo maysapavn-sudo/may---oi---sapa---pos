@@ -1,5 +1,5 @@
 /* MÂY POS Touch – service worker CHỈ cho thư mục /touch/ (không ảnh hưởng bản V1 ở thư mục gốc). */
-const CACHE = 'may-touch-v0.1';
+const CACHE = 'may-touch-v0.2';
 const SHELL = ['./', './index.html', './touch.css', './touch.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('may-touch-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
