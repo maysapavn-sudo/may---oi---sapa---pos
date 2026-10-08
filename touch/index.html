@@ -1,9 +1,6 @@
-<!doctype html>
-<html lang="vi">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>MÂY POS Touch · Bản chạy thử</title>
+<!doctype html><html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MÂY POS Touch</title>
 <meta name="theme-color" content="#0F5C33">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,12 +11,83 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
 <link rel="stylesheet" href="touch.css">
+<script src="supabase.js"></script><!-- supabase-js 2.117.2 (bản npm giống CDN @2), lưu kèm để mở được khi mất mạng -->
 </head>
 <body>
-<div id="app"></div>
-<div id="sheet" class="sheet" hidden></div>
-<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-<script src="touch.js"></script>
-</body>
-</html>
+<!-- Giao diện Touch (vẽ từ dữ liệu của lõi 3.1d) -->
+<div id="tapp" hidden><div id="t-top"></div><div id="t-net"></div><div id="t-main"></div><div id="t-more" hidden><div id="t-pages"></div></div><div id="t-nav"></div></div>
+<div id="tsheet" class="sheet" hidden></div>
+<!-- Phần dưới giữ NGUYÊN cấu trúc và mã phần tử của bản V1 để lõi 3.1d chạy đúng như cũ -->
+
+<div id="login" class="overlay">
+  <div class="dialog">
+    <div class="tlogo" aria-hidden="true"><svg width="62" height="62" viewBox="0 0 32 32" fill="none" stroke="#0F5C33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 24l8-11 5 6 4-5 9 10z"/><path d="M9 9a4 4 0 0 1 7-2a3 3 0 0 1 5 2"/></svg></div>
+    <h1>MÂY POS</h1>
+    <p>Mây ơi Sapa</p>
+
+    <input
+      id="loginEmail"
+      type="email"
+      placeholder="Email đăng nhập"
+      autocomplete="username"
+    >
+
+    <input
+      id="loginPin"
+      type="password"
+      placeholder="Mật khẩu"
+      autocomplete="current-password"
+    >
+
+    <button id="loginBtn" class="primary">
+      ĐĂNG NHẬP
+    </button>
+
+    <small id="loginError"></small>
+  </div>
+</div>
+
+<header><div><b>MÂY POS</b><small>Mây ơi Sapa</small></div><div class="hdr-r"><button id="deviceBtn" class="devbtn" title="Tên máy / thiết lập in">Máy in &amp; thiết bị</button><div id="userName"></div></div></header>
+<nav id="nav"></nav>
+<main>
+<section id="sale" class="page"><div class="pos"><div>
+<div class="card"><div class="title"><h2>Bàn</h2><div class="legend"><i class="free"></i>Trống <i class="sel"></i>Đang chọn <i class="busy"></i>Đang phục vụ <i class="wait"></i>Chờ thanh toán</div></div><div id="tables" class="tables"></div><div class="rowgap"><button id="moveTable">Chuyển bàn</button><button id="mergeTable">Gộp bàn</button></div></div>
+<div class="card"><div class="title"><h2>Menu</h2><input id="searchMenu" placeholder="Tìm món..." style="max-width:220px"></div><div id="cats" class="cats"></div><div id="products" class="products"></div></div></div>
+<div class="card bill"><div id="billHead" class="notice">CHƯA CHỌN BÀN</div><h2>HÓA ĐƠN</h2><div id="order"></div><div id="billSummary"></div><div class="total" id="total">0 đ</div><button id="send" class="primary wide">GỬI BẾP / BAR</button><div class="twocol"><button id="discount">GIẢM GIÁ</button><button id="voidItem" class="danger">HỦY MÓN</button></div><div class="twocol"><button id="splitBill">TÁCH HÓA ĐƠN</button><button id="markPay">CHỜ THANH TOÁN</button></div><button id="printTemp" class="wide">IN TẠM TÍNH</button><button id="pay" class="orange wide">THANH TOÁN</button></div></div></section>
+
+<section id="overview" class="page"><div class="ovhead"><h2>Tổng quan</h2><div id="ovUpdated"></div></div><div class="card ovmain" id="ovMain"></div><div class="card ai" id="ovAnalysis"></div><div class="card"><h3>Chỉ số hôm nay</h3><div id="ovStats" class="stats"></div></div><div class="card"><h3>Doanh thu 7 ngày</h3><div id="ovWeek"></div></div><div class="card"><h3>Món bán chạy hôm nay</h3><div id="ovTop"></div></div></section>
+<section id="bills" class="page"><div class="card"><h2>Hóa đơn</h2><div class="formgrid"><select id="billRange"><option value="today">Hôm nay</option><option value="yesterday">Hôm qua</option><option value="7d">7 ngày qua</option><option value="30d">30 ngày qua</option><option value="month">Tháng này</option><option value="lastmonth">Tháng trước</option></select><input id="billSearch" placeholder="Tìm số HĐ, số bàn, nhân viên..."></div><div id="billSummaryBar" class="stats" style="margin-top:8px"></div></div><div class="card"><div id="billList"></div></div></section>
+<section id="reports" class="page"><div class="card"><h2>Báo cáo</h2><div class="formgrid"><select id="reportType"><option value="revenue">Doanh thu theo ngày</option><option value="items">Mặt hàng bán chạy</option><option value="staff">Doanh thu theo nhân viên</option><option value="method">Phương thức thanh toán</option><option value="guests">Số lượng khách</option><option value="hours">Doanh thu theo giờ</option><option value="kitchen">Thời gian hoàn thành món</option><option value="cancel">Hủy hóa đơn / hủy món</option><option value="stock">Tổng hợp tồn kho</option><option value="stockmove">Nhập – xuất – hao hụt kho</option><option value="cashflow">Tình hình thu chi</option></select><select id="reportRange"><option value="today">Hôm nay</option><option value="yesterday">Hôm qua</option><option value="7d" selected>7 ngày qua</option><option value="30d">30 ngày qua</option><option value="month">Tháng này</option><option value="lastmonth">Tháng trước</option></select></div><div class="rowgap"><button id="exportReport">XUẤT EXCEL (CSV)</button></div></div><div class="card"><div id="reportOut"></div></div></section>
+<section id="booking" class="page"><div class="card"><div class="title"><h2>Đặt chỗ</h2><button id="addResv" class="primary">+ Đặt chỗ</button></div><div id="resvSum" class="stats"></div><select id="resvRange" style="margin:8px 0;max-width:260px"><option value="today">Hôm nay</option><option value="tomorrow">Ngày mai</option><option value="7d">7 ngày tới</option><option value="upcoming">Tất cả sắp tới</option><option value="past">Đã qua (31 ngày)</option></select><div id="resvList"></div></div></section>
+<section id="notify" class="page"><div class="card"><h2>Thông báo</h2><div id="notifyList"></div></div></section>
+<section id="kds" class="page"><div class="card"><h2 id="kdsTitle">BẾP / BAR</h2><div id="tickets" class="tickets"></div></div></section>
+<section id="shift" class="page"><div class="card"><h2>Ca &amp; Quỹ tiền</h2><div id="shiftStats" class="stats"></div>
+<div id="openBox" class="rowgap"><input id="opening" type="number" min="0" placeholder="Quỹ đầu ca (tiền mặt trong két)" style="max-width:320px"><button id="openShift" class="primary">MỞ CA</button></div>
+<div id="closeBox"><h3>Đóng ca</h3><div class="formgrid"><input id="actualCash" type="number" min="0" placeholder="Tiền mặt thực tế đếm được"><textarea id="shiftReason" placeholder="Lý do chênh lệch (bắt buộc nếu lệch)"></textarea></div><p id="closePreview" class="muted"></p><button id="closeShift" class="orange">ĐÓNG CA</button></div><div id="shiftResult"></div></div>
+<div class="card" id="cashBox"><h2>Phiếu thu / chi</h2><div class="formgrid"><select id="cashType"><option value="CHI">Phiếu CHI</option><option value="THU">Phiếu THU</option></select><input id="cashAmount" type="number" min="0" placeholder="Số tiền"><input id="cashCat" list="cashCats" placeholder="Hạng mục"><datalist id="cashCats"><option>Mua nguyên liệu</option><option>Điện / nước / gas</option><option>Lương / thưởng</option><option>Sửa chữa</option><option>Nộp tiền về chủ</option><option>Thu khác</option><option>Chi khác</option></datalist><select id="cashMethod"><option>Tiền mặt</option><option>Chuyển khoản</option></select><input id="cashNote" placeholder="Ghi chú (người nhận, nội dung...)"><button id="postCash" class="primary">LẬP PHIẾU</button></div><div id="cashList" style="margin-top:10px"></div></div>
+<div class="card"><h2>Lịch sử ca</h2><div id="shiftHistory"></div></div></section>
+<section id="stock" class="page"><div class="card"><div class="title"><h2>Kho &amp; nguyên liệu</h2><button id="addIngredient" class="primary">+ Nguyên liệu</button></div><div id="stockSum" class="stats"></div><input id="stockSearch" placeholder="Tìm mã, tên nguyên liệu..." style="margin:8px 0"><div id="stockTable"></div></div>
+<div class="card"><h2>Phiếu kho</h2><div class="formgrid">
+<label class="fld"><span>Loại phiếu</span><select id="stockType"><option value="NHẬP">Nhập kho</option><option value="XUẤT">Xuất kho</option><option value="CHUYỂN">Chuyển kho</option><option value="ĐIỀU CHỈNH">Điều chỉnh (+/−)</option><option value="KIỂM KÊ">Kiểm kê</option><option value="HỦY">Hủy / hư hỏng</option></select></label>
+<label class="fld"><span>Nguyên liệu</span><select id="stockIngredient"></select></label>
+<label class="fld"><span>Tại kho</span><select id="stockLoc"><option value="KHO">Kho tổng</option><option value="BEP">Bếp</option><option value="BAR">Bar</option></select></label>
+<label class="fld" id="stockToWrap"><span>Chuyển đến</span><select id="stockTo"><option value="BEP">Bếp</option><option value="BAR">Bar</option><option value="KHO">Kho tổng</option></select></label>
+<label class="fld"><span id="stockQtyLabel">Số lượng</span><input id="stockQty" type="number" min="0" step="any"></label>
+<label class="fld" id="stockCostWrap"><span>Đơn giá nhập / 1 đơn vị</span><input id="stockCost" type="number" min="0" step="any"></label>
+<label class="fld"><span>Nhà cung cấp / lý do</span><input id="stockSupplier"></label>
+<button id="postStock" class="primary">GHI PHIẾU</button></div></div>
+<div class="card" id="impBox"><h2>Nhập dữ liệu thật (Excel / CSV)</h2><p class="muted">Nhập danh sách nguyên liệu (mã, tên, đơn vị, giá vốn, kho Bếp/Bar, tồn đầu kỳ, tồn tối thiểu) hoặc định lượng món (mã món → mã nguyên liệu → số lượng). Hệ thống chỉ ghi khi bạn bấm GHI DỮ LIỆU, không tự tạo dữ liệu giả. Menu giữ nguyên.</p><div class="formgrid"><select id="impKind"><option value="ingredients">Nguyên liệu – đơn vị – giá vốn</option><option value="recipes">Định lượng món (công thức)</option></select><input type="file" id="impFile" accept=".csv,.txt,.tsv,.xlsx,.xls"></div><textarea id="impText" rows="6" placeholder="Hoặc dán bảng từ Excel vào đây (có dòng tiêu đề)..." style="width:100%;margin-top:8px"></textarea><label class="chk" id="impReplaceWrap" style="display:none"><input type="checkbox" id="impReplace"> Thay toàn bộ định lượng cũ của các món có trong file</label><div class="rowgap"><button id="impTemplate">TẢI FILE MẪU</button><button id="impMenuList">TẢI DANH SÁCH MÃ MÓN</button><button id="impCheck">KIỂM TRA</button><button id="impCommit" class="primary" disabled>GHI DỮ LIỆU</button></div><div id="impPreview"></div></div><div class="card"><div class="title"><h2>Lịch sử kho</h2><select id="moveFilter" style="max-width:200px"><option value="">Tất cả</option><option>NHẬP</option><option>XUẤT</option><option>CHUYỂN</option><option>ĐIỀU CHỈNH</option><option>KIỂM KÊ</option><option>HỦY</option><option>HAO HỤT</option><option>BÁN HÀNG</option></select></div><div id="stockMoves"></div></div></section>
+<section id="recipes" class="page"><div class="card"><h2>Công thức &amp; Food Cost</h2><p class="muted">Khai báo định lượng nguyên liệu cho từng món. Khi thanh toán, hệ thống tự trừ kho Bếp/Bar; hủy hóa đơn thì tự hoàn lại.</p><div id="recipeSum" class="stats"></div><input id="recipeSearch" placeholder="Tìm món..." style="margin:8px 0"><div id="recipeList"></div></div></section>
+<section id="menuadmin" class="page"><div class="card"><div class="title"><h2>Thực đơn</h2><button id="addMenu" class="primary">+ Thêm món</button></div><input id="menuSearch" placeholder="Tìm tên món, mã món, nhóm..."><label class="chk"><input type="checkbox" id="menuMarketOnly"> Món thay đổi theo thời giá</label><div id="menuCount" class="dayhead"></div><div id="menuTable"></div></div></section>
+<section id="staff" class="page"><div class="card"><div class="title"><h2>Nhân viên &amp; phân quyền</h2><div class="rowgap" style="margin-top:0"><button id="reloadStaff">TẢI LẠI</button><button id="addStaff" class="primary">+ Gán quyền nhân viên</button></div></div><p class="muted">Bước 1: OWNER tạo tài khoản đăng nhập trong Supabase → Authentication → Users → Add user (email + mật khẩu). Bước 2: bấm “+ Gán quyền nhân viên”, nhập đúng email đó, chọn vai trò và quyền riêng. Tài khoản OWNER không thể bị sửa tại đây.</p><div id="staffList"></div></div></section>
+<section id="dashboard" class="page"><div class="card"><h2>Dashboard OWNER</h2><div id="dashStats" class="stats"></div><div id="topItems"></div></div></section>
+<section id="risk" class="page"><div class="card"><h2>Kiểm soát</h2><p><b>Tài khoản nhận tiền chính thức:</b> <span id="bankInfo"></span></p><button id="setBank" class="primary">OWNER CẤU HÌNH</button></div><div class="card"><div class="title"><h2>Thông tin in hóa đơn</h2><button id="storeEdit">SỬA</button></div><div id="storeInfo"></div></div><div class="card"><h2>Cảnh báo</h2><div id="riskLog"></div></div></section>
+<section id="audit" class="page"><div class="card"><div class="title"><h2>Nhật ký thao tác</h2><input id="auditSearch" placeholder="Tìm..." style="max-width:240px"></div><div id="auditLog"></div></div></section>
+<section id="backup" class="page"><div class="card"><h2>Sao lưu / khôi phục</h2><button id="exportData" class="primary">XUẤT BACKUP JSON</button><p class="muted">Dữ liệu chính (đơn bàn, hóa đơn, kho, ca, nhật ký) lưu trên hệ thống Supabase và đồng bộ mọi máy. Nút trên chỉ xuất một bản chụp để lưu trữ.</p></div></section>
+</main>
+<div id="modal" class="modal"><div class="dialog" id="modalBody"></div></div><div id="toast"></div>
+<div id="printArea"></div>
+<script src="core.js"></script>
+<script src="touch.js"></script></body></html>

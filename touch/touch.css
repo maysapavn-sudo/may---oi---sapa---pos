@@ -16,7 +16,12 @@ button:disabled{cursor:not-allowed}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 svg{flex:none}
 
-#app{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}
+#tapp{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;overflow:hidden;background:var(--ground)}
+#tapp[hidden]{display:none}
+#t-top,#t-net,#t-nav{flex:none}
+#t-main{flex:1;min-height:0;display:flex;min-width:0;overflow:hidden}
+#t-main>*{min-width:0}
+#t-main[hidden],#t-more[hidden]{display:none}
 .top{flex:none;display:flex;align-items:center;gap:12px;padding:calc(10px + var(--safe-t)) 16px 10px;background:var(--forest);color:#fff;min-height:64px}
 .brand{display:flex;align-items:center;gap:8px;min-width:0}
 .brand b{font-size:18px;letter-spacing:.04em;white-space:nowrap;display:block;line-height:1.05}
@@ -37,18 +42,16 @@ svg{flex:none}
 .iconbtn{width:44px;height:44px;border-radius:12px;border:0;background:transparent;color:#fff;display:flex;align-items:center;justify-content:center}
 .who{display:flex;flex-direction:column;align-items:flex-end;line-height:1.15;font-size:12px}
 .who b{font-size:14px}
-.demo{flex:none;background:#14201A;color:#E9EEEA;font-size:11px;font-weight:600;text-align:center;padding:3px 8px;letter-spacing:.04em}
+.tdemo{flex:none;background:#14201A;color:#E9EEEA;font-size:11px;font-weight:600;text-align:center;padding:3px 8px;letter-spacing:.04em}
 .netbar{flex:none;display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:var(--warn-bg);border-bottom:3px solid var(--warn);color:var(--warn-ink);font-size:15px;line-height:1.4}
 .netbar.conflict{background:var(--red-bg);border-color:var(--red);color:var(--red-ink)}
-.main{flex:1;min-height:0;display:flex;min-width:0;overflow:hidden}
-.main>*{min-width:0}
 .navb{flex:none;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:#fff;border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
 .navb button{height:68px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:13px;font-weight:700;color:var(--muted)}
 .navb button[aria-current="page"]{color:var(--forest);font-weight:800}
 .navb button .badge{position:absolute;margin:-26px 0 0 28px;min-width:20px;height:20px;border-radius:10px;background:var(--red);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0 5px}
 
 /* --- Bàn --- */
-.tables{flex:1;min-height:0;display:flex;flex-direction:column;padding:14px 18px 0;gap:12px}
+.tview{flex:1;min-height:0;display:flex;flex-direction:column;padding:14px 18px 0;gap:12px}
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;flex:none;padding-bottom:2px}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;height:52px;padding:0 18px;border-radius:14px;border:2px solid var(--line2);background:#fff;font-size:16px;font-weight:600;white-space:nowrap}
@@ -65,8 +68,8 @@ svg{flex:none}
 .tb.pend span{color:var(--warn-t);font-weight:800}
 .tb.conf{border:3px solid var(--red);background:var(--red-bg)}
 .tb.conf span{color:var(--red-ink);font-weight:800}
-.legend{flex:none;display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);padding:0 2px 10px}
-.legend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:4px;vertical-align:-2px}
+.tlegend{flex:none;display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);padding:0 2px 10px}
+.tlegend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:4px;vertical-align:-2px}
 
 /* --- Order --- */
 .order{flex:1;min-height:0;display:flex}
@@ -99,7 +102,7 @@ svg{flex:none}
 .btn.danger{border-color:var(--red);color:var(--red-ink)}
 .btn.tall{height:72px;flex-direction:column;gap:2px;font-size:19px;line-height:1.1;border-radius:16px}
 .btn.tall small{font-size:13px;font-weight:600;opacity:.95}
-.empty{padding:40px 10px;text-align:center;color:var(--muted);font-size:16px;line-height:1.5;grid-column:1/-1}
+.tempty{padding:40px 10px;text-align:center;color:var(--muted);font-size:16px;line-height:1.5;grid-column:1/-1}
 
 .cart{width:392px;flex:none;display:flex;flex-direction:column;background:#fff;border-left:1px solid var(--line);min-height:0}
 .cart h2,.panel .chead h2{margin:0;font-size:22px;font-weight:800}
@@ -186,9 +189,9 @@ svg{flex:none}
   .cartbar .send{height:70px;font-size:20px;box-shadow:0 5px 0 var(--amber-d);margin-bottom:5px}
   .cartbar .send:disabled{height:60px;font-size:17px;margin-bottom:0}
   .navb{display:grid}
-  .demo .long,.top .long,.netbar .long{display:none}
+  .top .long,.netbar .long{display:none}
   .netbar{padding:8px 12px;font-size:14px}
-  .tables{padding:12px 12px 0;gap:10px}
+  .tview{padding:12px 12px 0;gap:10px}
   .tgrid{grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:96px}
   .tb b{font-size:22px}
   .panel .chead{padding:14px 16px 8px}
@@ -254,10 +257,10 @@ svg{flex:none}
 .pt .r1,.pt.wait .r1{color:var(--ink)}
 .pt.wait span{color:var(--warn-t);font-weight:800}
 .pt.pend{border:3px dashed var(--warn-t)}
-.bill{flex:1;min-width:0;background:#fff;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
-.bill h2{margin:0;font-size:26px}
-.bill .bh{display:flex;justify-content:space-between;align-items:baseline}
-.bill .bh span{font-size:15px;color:var(--muted)}
+.pbill{flex:1;min-width:0;background:#fff;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+.pbill h2{margin:0;font-size:26px}
+.pbill .bh{display:flex;justify-content:space-between;align-items:baseline}
+.pbill .bh span{font-size:15px;color:var(--muted)}
 .brow{flex:none;display:flex;padding:10px 0;border-bottom:1px solid #E3E9E5;font-size:17px;gap:8px}
 .brow span:first-child{flex:1}
 .brow b{width:120px;text-align:right}
@@ -270,7 +273,7 @@ svg{flex:none}
 .change b{font-size:28px;color:var(--forest)}
 @media (max-width:899px){
   .pay{flex-direction:column;overflow-y:auto;padding:12px 12px 24px}
-  .bill,.paybox{flex:none}
+  .pbill,.paybox{flex:none}
   .big{font-size:32px}
   .plist,.paybox{width:auto}
   .plist{flex-direction:row;overflow-x:auto;overflow-y:visible;flex:none}
@@ -280,23 +283,86 @@ svg{flex:none}
 
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + var(--safe-b));z-index:60;background:#14201A;color:#fff;padding:12px 18px;border-radius:14px;font-size:16px;font-weight:700;max-width:90vw;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .toast[hidden]{display:none}
-.roles{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:calc(40px + var(--safe-t)) 20px calc(20px + var(--safe-b));gap:18px;background:var(--forest)}
-.roles .hero{display:flex;flex-direction:column;align-items:center;gap:10px;color:#fff}
-.roles .logo{width:96px;height:96px;border-radius:26px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(0,0,0,.25)}
-.roles .hero b{font-size:30px;letter-spacing:.05em}
-.roles .hero span{font-size:15px;opacity:.9}
-.roles .card{width:min(460px,100%);background:#fff;border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:10px}
-.roles .card h2{margin:0 0 2px;font-size:18px}
-.roles .opt{height:64px;justify-content:space-between}
-.roles .note{margin:0;font-size:13px;color:var(--muted);line-height:1.4}
-.roles .install{flex-direction:row;align-items:center;gap:12px;border-radius:18px;padding:14px 16px;margin-top:auto}
-.roles .install span{flex:1;font-size:14px;line-height:1.4}
-.roles .install b{font-size:16px}
-.roles .install .btn{flex:none;padding:0 18px}
 
-@media (max-width:899px){ .toast{bottom:auto;top:calc(70px + var(--safe-t));max-width:calc(100vw - 32px);font-size:15px} }
-/* sửa sau khi xem ảnh: nút phiếu Bếp/Bar căn giữa (tránh trùng lớp .main của khung), giá/khu chế biến không đè nút trên màn hẹp, nút GỬI khóa không có bóng */
-.tk .act .main{display:flex;align-items:center;justify-content:center;text-align:center;overflow:visible;min-height:0}
-.pc .info{flex:1;min-width:0}
-.pc .meta{flex-wrap:wrap;row-gap:0}
-.cartbar .send:disabled{box-shadow:none}
+/* ===================================================================
+   MÂY POS Touch – phần dùng với lõi 3.1d thật
+   =================================================================== */
+/* nút/ô nhập trong Touch không nhận kiểu mặc định của V1 (đặt độ ưu tiên thấp để các lớp Touch quyết định) */
+:where(#tapp,#tsheet) button{border:0;border-radius:0;padding:0;font-weight:inherit;background:none;color:inherit;font-size:inherit}
+:where(#tapp,#tsheet) input{width:auto;padding:0;border:0;border-radius:0;background:transparent}
+:where(#tapp,#tsheet) a{color:inherit;text-decoration:none}
+body{font-family:'Be Vietnam Pro',system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--ground)}
+/* khung của V1 không hiện khi đã vào Touch */
+body.t-on>header,body.t-on>nav#nav{display:none}
+#tapp .navb button .badge{display:none}
+.pill.wait{background:#FFF7E0;color:#6B4A00}
+.pill.wait .dot{background:var(--warn)}
+#t-more{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:var(--safe-b)}
+#t-pages{position:sticky;top:0;z-index:5;background:var(--ground);padding:12px 14px 6px}
+#t-more main{padding:0 2px}
+#t-more #sale,#t-more #kds{display:none!important}
+#t-more .card{border-radius:16px;border:0;box-shadow:0 1px 2px rgba(20,32,26,.08)}
+#t-more button{border-radius:12px;min-height:44px;font-family:inherit}
+#t-more button.primary,#t-more .navon{background:var(--forest);border-color:var(--forest)}
+#t-more input,#t-more select,#t-more textarea{min-height:44px;border-radius:10px;font-family:inherit;font-size:16px}
+/* giỏ: nút Khác (chuyển bàn, giảm giá, in tạm tính…) ở đầu giỏ */
+.chead{align-items:center}
+.chead h2{flex:1;min-width:0}
+.btn.moreb{flex:none;height:44px;padding:0 12px;font-size:14px;gap:6px;border-radius:12px}
+.btn.moreb svg{width:20px;height:20px}
+.btn.nt{border-style:dashed}
+.pc .pr small{font-weight:600;color:var(--muted);font-size:12px}
+.tlegend{flex:none;display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);padding:0 2px 10px}
+.tlegend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:4px;vertical-align:-2px}
+.tempty{padding:40px 10px;text-align:center;color:var(--muted);font-size:16px;line-height:1.5;grid-column:1/-1}
+.tview{flex:1;min-height:0;display:flex;flex-direction:column;padding:14px 18px 0;gap:12px}
+/* thu ngân */
+.pbill.pick{align-items:center;justify-content:center}
+.pbill .bsum{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding-top:10px}
+.pbill .tl{font-size:20px}
+.pbill small{color:var(--muted)}
+.paybox .send{margin-top:4px}
+.paybox .hint{margin:0;font-size:13px;color:var(--muted)}
+.paybox .btn{height:56px}
+/* bảng trượt */
+.sheet{position:fixed;inset:0;z-index:50;background:rgba(20,32,26,.45);display:flex;align-items:flex-end;justify-content:center}
+.sheet[hidden]{display:none}
+.opt.danger{border-color:var(--red);color:var(--red-ink)}
+.opt.g{background:var(--forest);border-color:var(--forest);color:#fff}
+.who2{display:flex;flex-direction:column;padding:2px 2px 6px}
+.who2 b{font-size:18px}.who2 span{font-size:13px;color:var(--muted)}
+.ver{margin:6px 0 0;font-size:12px;color:var(--muted)}
+/* ô thông báo ngắn của 3.1d */
+#toast{left:50%!important;right:auto!important;transform:translateX(-50%);bottom:calc(96px + var(--safe-b))!important;background:#14201A!important;border-radius:14px!important;font-family:inherit;font-size:16px;font-weight:700;max-width:calc(100vw - 32px);text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:130!important}
+@media (max-width:899px){ #toast{bottom:auto!important;top:calc(70px + var(--safe-t))} }
+
+/* ---------- đăng nhập (giữ nguyên ô nhập của 3.1d, chỉ đổi giao diện) ---------- */
+#login.overlay{background:var(--forest);align-items:flex-start;overflow-y:auto;padding:calc(48px + var(--safe-t)) 20px 24px}
+#login .dialog{width:min(440px,100%);max-height:none;background:transparent;padding:0;display:flex;flex-direction:column;gap:12px;overflow:visible}
+#login .tlogo{width:96px;height:96px;border-radius:26px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(0,0,0,.25);margin:0 auto}
+#login h1{margin:4px 0 0;color:#fff;text-align:center;font-size:30px;letter-spacing:.05em}
+#login .dialog>p{margin:0 0 8px;color:#E3F4E8;text-align:center;font-size:15px}
+#login input{height:58px;border-radius:14px;border:2px solid #C9D4CC;padding:0 14px;font-family:inherit;font-size:18px;margin:0}
+#login #loginBtn{height:64px;border:0;border-radius:16px;background:var(--amber);color:var(--amber-ink);font-family:inherit;font-size:20px;font-weight:800;margin-top:4px}
+#login #loginError{color:#FFE1DC;font-size:15px;text-align:center;min-height:1em}
+#login #obxLogin{font-family:inherit}
+
+/* ---------- hộp thoại của 3.1d (thanh toán, giảm giá, hóa đơn…) ---------- */
+.modal .dialog{border-radius:22px;padding:20px;font-family:inherit;width:480px}
+.modal .dialog h2{margin:0 0 10px;font-size:22px}
+.modal .dialog input,.modal .dialog select,.modal .dialog textarea{min-height:52px;font-size:17px;border-radius:12px;border:2px solid #C9D4CC;font-family:inherit}
+.modal .dialog button{min-height:52px;border-radius:14px;font-family:inherit;font-size:16px;margin-top:8px}
+.modal .dialog button.primary{background:var(--forest);border-color:var(--forest);min-height:64px;font-size:19px}
+.modal .dialog .total{color:var(--forest);font-size:34px}
+.modal.t-pay #confirmPay{background:var(--amber);color:var(--amber-ink);border:0;box-shadow:0 5px 0 var(--amber-d);min-height:70px;font-size:21px;margin:12px 0 10px}
+.tquick{margin:8px 0 4px;display:flex;flex-direction:column;gap:6px}
+.tquick>span{font-size:14px;font-weight:700;color:var(--muted)}
+.tquick>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.modal .dialog .tquick button{margin:0;min-height:54px;background:#fff;border:2px solid var(--line2);font-weight:800}
+.modal .dialog .tquick button[aria-pressed="true"]{border-color:var(--forest);background:var(--forest-l)}
+.tquick p{margin:2px 0 0;font-size:17px;min-height:1.2em}
+.tquick p b{color:var(--forest);font-size:22px}.tquick p .neg{color:var(--red-ink);font-size:17px}
+@media (max-width:899px){
+  .modal{align-items:flex-end;padding:0}
+  .modal .dialog{width:100%;max-height:92dvh;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + var(--safe-b))}
+}

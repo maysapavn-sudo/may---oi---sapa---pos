@@ -1,11 +1,14 @@
-/* MÂY POS Touch – service worker CHỈ cho thư mục /touch/ (không ảnh hưởng bản V1 ở thư mục gốc). */
-const CACHE = 'may-touch-v0.2';
-const SHELL = ['./', './index.html', './touch.css', './touch.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('may-touch-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
+// MÂY POS Touch – chỉ lưu sẵn KHUNG ỨNG DỤNG để mở được khi mạng chập chờn.
+// Không bao giờ lưu/đọc hộ dữ liệu bán hàng: mọi yêu cầu tới máy chủ dữ liệu (supabase.co) đi thẳng mạng.
+const CACHE = 'may-touch-1.0';
+const SHELL = ['./', './index.html', './touch.css', './touch.js', './core.js', '../style.css', './manifest.webmanifest', './icon-192.png', './icon-512.png', './supabase.js'];
+self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => Promise.all(SHELL.map(u => c.add(u).catch(() => {})))).then(() => self.skipWaiting())); });
+self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
-  const u = new URL(e.request.url);
-  if (e.request.method !== 'GET' || u.origin !== location.origin || !u.pathname.includes('/touch/')) return; // chỉ phục vụ file của /touch/
-  // Mạng trước (luôn lấy bản mới nhất), mất mạng thì dùng bản đã lưu để app vẫn mở được.
-  e.respondWith(fetch(e.request).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put(e.request, c)); return r; }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html'))));
+  const r = e.request; if (r.method !== 'GET') return;
+  const u = new URL(r.url);
+  const shell = (u.origin === location.origin && (u.pathname.includes('/touch/') || u.pathname.endsWith('/style.css')));
+  if (!shell) return; // dữ liệu, font, mọi thứ khác: để trình duyệt tự xử lý
+  e.respondWith(fetch(r).then(res => { if (res && res.ok) { const c = res.clone(); caches.open(CACHE).then(x => x.put(r, c)); } return res; })
+    .catch(() => caches.match(r, { ignoreSearch: true }).then(m => m || (r.mode === 'navigate' ? caches.match('./index.html') : Response.error()))));
 });
